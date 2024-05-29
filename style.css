@@ -1,0 +1,48 @@
+label{
+  margin: 0;
+  font-weight: 300;
+}
+canvas {
+  border: 1px solid black;
+  display: block;
+}
+.menu-bar {
+  position: fixed;
+  display: flex; 
+  left: 50%;
+  transform: translateX(-50%);
+  top: 20px;
+  padding: 0.3rem;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  border-radius: 15px; 
+  max-width: fit-content;
+}
+input[type="file"] {
+  display: none;
+}
+.editor-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 15rem;
+  background-color: #fff;
+  padding: 10px;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+#advancedOptionsMenu {
+  position: static;
+  display: none; /* Hide by default */
+  background-color: #f8f9fa; /* Match Bootstrap's default dropdown color */
+  border: none;
+  border-radius: 5px;
+}
+.dropdown-item{
+  padding-left: 0;
+}
+
+#advancedOptionsDropdown[aria-expanded="true"] + #advancedOptionsMenu {
+  display: block; /* Show the dropdown menu when the button is clicked */
+}
