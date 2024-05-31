@@ -10,8 +10,8 @@ const editorContent = document.getElementById("editorContent");
 
 function removeEventListeners() {
   canvas.removeEventListener("mousedown", startDrawing);
-  canvas.removeEventListener("mousemove", drawPreview);
-  canvas.removeEventListener("mouseup", finishDrawing);
+  canvas.removeEventListener("mousemove", drawAreaPreview);
+  canvas.removeEventListener("mouseup", finishAreaDrawing);
   canvas.removeEventListener("click", selectShape);
 }
 
@@ -33,6 +33,7 @@ insertAreaButton.addEventListener("click", () => {
 
 selectButton.addEventListener("click", () => {
   reset();
+  canvas.addEventListener("dblclick", zoomInArea);
   canvas.addEventListener("mousedown", selectShape);
   setEditorTitle("<h4>Select and Edit Options</h4>");
   setEditorContent("");
@@ -47,9 +48,52 @@ redoButton.addEventListener("click", () => {
 });
 
 saveButton.addEventListener("click", () => {
-  // Save functionality
+  // Serialize canvas data into JSON format
+  const canvasData = {
+    shapes: shapes.map((shape) => ({
+      type: shape.constructor.name,
+      data: shape.serialize(),
+    })),
+  };
+
+  // Convert to JSON string
+  const json = JSON.stringify(canvasData);
+
+  // Create a blob from the JSON string
+  const blob = new Blob([json], { type: "application/json" });
+
+  // Create a link element to trigger download
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "canvas_data.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 });
 
-loadButton.addEventListener("click", () => {
-  // Load functionality
+loadButton.addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const json = e.target.result;
+    const canvasData = JSON.parse(json);
+
+    // Clear current canvas state
+    shapes = [];
+
+    // Deserialize shapes and add them to canvas
+    canvasData.shapes.forEach((shapeData) => {
+      const ShapeClass = eval(shapeData.type); // Assuming shape classes are globally accessible
+      const shape = new ShapeClass();
+      shape.deserialize(shapeData.data);
+      shapes.push(shape);
+    });
+
+    // Redraw canvas with loaded shapes
+    drawAll();
+  };
+
+  reader.readAsText(file);
 });

@@ -1,11 +1,22 @@
 class Shape {
+  constructor() {
+    this.isHidden = false;
+  }
   draw(ctx) {
     return "shape";
   }
 }
 
 class RoundedBorderRectangle extends Shape {
-  constructor({ x, y, width, height, borderRadius = 0, color = "white" }) {
+  constructor({
+    x,
+    y,
+    width,
+    height,
+    borderRadius = 0,
+    color = "white",
+    rotation = 0,
+  }) {
     super();
     this.x = x;
     this.y = y;
@@ -16,54 +27,42 @@ class RoundedBorderRectangle extends Shape {
     this.bottomLeftBorderRadius = borderRadius;
     this.bottomRightBorderRadius = borderRadius;
     this.color = color;
+    this.rotation = rotation; // Adding rotation property
   }
 
   draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.translate(-this.width / 2, -this.height / 2);
     ctx.beginPath();
-    ctx.moveTo(this.x + this.topLeftBorderRadius, this.y);
-    ctx.lineTo(this.x + this.width - this.topRightBorderRadius, this.y);
+    ctx.moveTo(this.topLeftBorderRadius, 0);
+    ctx.lineTo(this.width - this.topRightBorderRadius, 0);
+    ctx.quadraticCurveTo(this.width, 0, this.width, this.topRightBorderRadius);
+    ctx.lineTo(this.width, this.height - this.bottomRightBorderRadius);
     ctx.quadraticCurveTo(
-      this.x + this.width,
-      this.y,
-      this.x + this.width,
-      this.y + this.topRightBorderRadius
+      this.width,
+      this.height,
+      this.width - this.bottomRightBorderRadius,
+      this.height
     );
-
-    ctx.lineTo(
-      this.x + this.width,
-      this.y + this.height - this.bottomRightBorderRadius
-    );
+    ctx.lineTo(this.bottomLeftBorderRadius, this.height);
     ctx.quadraticCurveTo(
-      this.x + this.width,
-      this.y + this.height,
-      this.x + this.width - this.bottomRightBorderRadius,
-      this.y + this.height
+      0,
+      this.height,
+      0,
+      this.height - this.bottomLeftBorderRadius
     );
-
-    ctx.lineTo(this.x + this.bottomLeftBorderRadius, this.y + this.height);
-    ctx.quadraticCurveTo(
-      this.x,
-      this.y + this.height,
-      this.x,
-      this.y + this.height - this.bottomLeftBorderRadius
-    );
-
-    ctx.lineTo(this.x, this.y + this.topLeftBorderRadius);
-    ctx.quadraticCurveTo(
-      this.x,
-      this.y,
-      this.x + this.topLeftBorderRadius,
-      this.y
-    );
-
+    ctx.lineTo(0, this.topLeftBorderRadius);
+    ctx.quadraticCurveTo(0, 0, this.topLeftBorderRadius, 0);
     ctx.closePath();
     ctx.stroke();
     ctx.fillStyle = this.color;
     ctx.fill();
+    ctx.restore();
     return "rectangle";
   }
 }
-
 class Stage extends RoundedBorderRectangle {
   constructor({ name, x, y, width, height, color = "lightgrey" }) {
     super({ x: x, y: y, width: width, height: height, color: color });
@@ -73,13 +72,14 @@ class Stage extends RoundedBorderRectangle {
   draw(ctx) {
     super.draw(ctx);
     ctx.font = `${this.width / 12}px Arial`;
-    ctx.textBaseLine = "middle";
+    ctx.textBaseline = "middle";
     ctx.textAlign = "center";
     ctx.fillStyle = "black";
     ctx.fillText(this.name, this.x + this.width / 2, this.y + this.height / 2);
     return "stage";
   }
 }
+
 class Area extends RoundedBorderRectangle {
   constructor({ name, x, y, width, height }) {
     super({ x: x, y: y, width: width, height: height });
@@ -105,10 +105,34 @@ class Area extends RoundedBorderRectangle {
     return "stage";
   }
 
-  createRow({ name, startX, startY, seatRadius, seatSpacing = 10 }) {
+  createRow({ name = "", startX, startY, seatRadius, seatSpacing = 10 }) {
     const row = new Row({ name, startX, startY, seatRadius, seatSpacing });
     this.addRow(row);
     return row;
+  }
+
+  createSeatsForRow({
+    name,
+    startX,
+    startY,
+    seatRadius,
+    numberOfSeats,
+    seatSpacing = 10,
+  }) {
+    const row = this.createRow({
+      name,
+      startX,
+      startY,
+      seatRadius,
+      seatSpacing,
+    });
+
+    for (let seatIndex = 0; seatIndex < numberOfSeats; seatIndex++) {
+      row.createSeat({
+        number: seatIndex + 1,
+        isBuyed: false,
+      });
+    }
   }
 
   createSeatsForAllAvailableSpace({
@@ -123,26 +147,26 @@ class Area extends RoundedBorderRectangle {
     for (let rowIndex = 0; rowIndex < rows; rowIndex++) {
       const startY =
         this.y + seatRadius * 2 + rowIndex * (seatRadius * 2 + rowSpacing);
-      const row = this.createRow({
-        name: `A${rowIndex + 1}.`,
+      this.createSeatsForRow({
+        name: `A${rowIndex + 1}`,
         startX: this.x + seatRadius * 2,
         startY: startY,
         seatRadius: seatRadius,
+        numberOfSeats: seatsPerRow,
         seatSpacing: seatSpacing,
       });
-
-      for (let seatIndex = 0; seatIndex < seatsPerRow; seatIndex++) {
-        row.createSeat({
-          number: seatIndex + 1,
-          isBuyed: isBuyed,
-        });
-      }
     }
   }
 }
 
 class Row {
-  constructor({ name, startX, startY, seatRadius = 10, seatSpacing = 10 }) {
+  constructor({
+    name = "",
+    startX,
+    startY,
+    seatRadius = 10,
+    seatSpacing = 10,
+  }) {
     this.name = name;
     this.startX = startX;
     this.startY = startY;
@@ -177,7 +201,7 @@ class Row {
 }
 
 class Seat {
-  constructor({ rowName, number, x, y, radius, isBuyed = false }) {
+  constructor({ rowName = "", number, x, y, radius, isBuyed = false }) {
     this.rowName = rowName;
     this.number = number;
     this.x = x;

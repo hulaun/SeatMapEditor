@@ -7,19 +7,21 @@ let isDrawing = false;
 let startX, startY;
 let selectedShape = null;
 let offsetX, offsetY;
-let isDragging = false;
+let canvasStates = []; // Stack to store canvas states
+let currentStateIndex = -1; // Index to track the current state
 
-let bin = [];
 let shapes = [];
 function drawAll() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   shapes.forEach((shape) => {
-    if (shape === selectedShape) {
-      ctx.strokeStyle = "red";
-    } else {
-      ctx.strokeStyle = "black";
+    if (!shape.isHidden) {
+      if (shape === selectedShape) {
+        ctx.strokeStyle = "red";
+      } else {
+        ctx.strokeStyle = "black";
+      }
+      shape.draw(ctx);
     }
-    shape.draw(ctx);
   });
 }
 window.addEventListener("resize", resizeCanvas, false);
@@ -29,9 +31,29 @@ function resizeCanvas() {
   canvas.height = window.innerHeight * 2;
   drawAll();
 }
+function saveCanvasState() {
+  const state = canvas.toDataURL();
+  if (currentStateIndex < canvasStates.length - 1) {
+    // If there are redo states ahead, remove them
+    canvasStates.splice(currentStateIndex + 1);
+  }
+  canvasStates.push(state);
+  currentStateIndex++;
+}
+
+// Function to restore the canvas state
+function restoreCanvasState(index) {
+  const state = new Image();
+  state.onload = function () {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(state, 0, 0);
+  };
+  state.src = canvasStates[index];
+}
 
 document.addEventListener("DOMContentLoaded", () => {
-  var map = new FirstTemplate(ctx, 100, 100, 700, 800);
+  var map = new FirstTemplate(ctx, 100, 300, 700, 800);
   shapes = [...shapes, ...map.shapes];
   drawAll();
+  saveCanvasState();
 });

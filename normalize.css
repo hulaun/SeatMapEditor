@@ -11,7 +11,6 @@
  html {
   line-height: 1.15; /* 1 */
   -webkit-text-size-adjust: 100%; /* 2 */
-  overflow: hidden;
 }
 
 /* Sections
@@ -20,8 +19,13 @@
 /**
  * Remove the margin in all browsers.
  */
+ body::-webkit-scrollbar {
+  display: none;
+}
 
+/* Hide scrollbars in Firefox */
 body {
+  scrollbar-width: none; /* Firefox */
   margin: 0;
 }
 

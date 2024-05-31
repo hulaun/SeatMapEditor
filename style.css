@@ -46,3 +46,19 @@ input[type="file"] {
 #advancedOptionsDropdown[aria-expanded="true"] + #advancedOptionsMenu {
   display: block; /* Show the dropdown menu when the button is clicked */
 }
+
+
+.canvas-container {
+  width: 100vw;
+  height: 100vh;
+  overflow: scroll;
+}
+
+.canvas-container::-webkit-scrollbar {
+  display: none; /* Hide scrollbars in WebKit browsers */
+}
+
+.canvas-container {
+  -ms-overflow-style: none;  /* Hide scrollbars in Internet Explorer and Edge */
+  scrollbar-width: none;  /* Hide scrollbars in Firefox */
+}
