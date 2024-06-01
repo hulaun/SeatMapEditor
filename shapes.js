@@ -2,6 +2,20 @@ class Shape {
   constructor() {
     this.isHidden = false;
   }
+
+  serialize() {
+    return {
+      type: "Shape",
+      isHidden: this.isHidden,
+    };
+  }
+
+  static deserialize(data) {
+    const shape = new Shape();
+    shape.isHidden = data.isHidden;
+    return shape;
+  }
+
   draw(ctx) {
     return "shape";
   }
@@ -27,7 +41,28 @@ class RoundedBorderRectangle extends Shape {
     this.bottomLeftBorderRadius = borderRadius;
     this.bottomRightBorderRadius = borderRadius;
     this.color = color;
-    this.rotation = rotation; // Adding rotation property
+    this.rotation = rotation;
+  }
+
+  serialize() {
+    return {
+      ...super.serialize(),
+      type: "RoundedBorderRectangle",
+      x: this.x,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+      topLeftBorderRadius: this.topLeftBorderRadius,
+      topRightBorderRadius: this.topRightBorderRadius,
+      bottomLeftBorderRadius: this.bottomLeftBorderRadius,
+      bottomRightBorderRadius: this.bottomRightBorderRadius,
+      color: this.color,
+      rotation: this.rotation,
+    };
+  }
+
+  static deserialize(data) {
+    return new RoundedBorderRectangle(data);
   }
 
   draw(ctx) {
@@ -65,8 +100,20 @@ class RoundedBorderRectangle extends Shape {
 }
 class Stage extends RoundedBorderRectangle {
   constructor({ name, x, y, width, height, color = "lightgrey" }) {
-    super({ x: x, y: y, width: width, height: height, color: color });
+    super({ x, y, width, height, color });
     this.name = name;
+  }
+
+  serialize() {
+    return {
+      ...super.serialize(),
+      type: "Stage",
+      name: this.name,
+    };
+  }
+
+  static deserialize(data) {
+    return new Stage(data);
   }
 
   draw(ctx) {
@@ -82,9 +129,24 @@ class Stage extends RoundedBorderRectangle {
 
 class Area extends RoundedBorderRectangle {
   constructor({ name, x, y, width, height }) {
-    super({ x: x, y: y, width: width, height: height });
+    super({ x, y, width, height });
     this.name = name;
     this.rows = [];
+  }
+
+  serialize() {
+    return {
+      ...super.serialize(),
+      type: "Area",
+      name: this.name,
+      rows: this.rows.map((row) => row.serialize()),
+    };
+  }
+
+  static deserialize(data) {
+    const area = new Area(data);
+    area.rows = data.rows.map((rowData) => Row.deserialize(rowData));
+    return area;
   }
 
   addRow(row) {
@@ -173,6 +235,25 @@ class Row {
     this.seatRadius = seatRadius;
     this.seatSpacing = seatSpacing;
     this.seats = [];
+    this.rotation = 0; // Added rotation property
+  }
+
+  serialize() {
+    return {
+      name: this.name,
+      startX: this.startX,
+      startY: this.startY,
+      seatRadius: this.seatRadius,
+      seatSpacing: this.seatSpacing,
+      seats: this.seats.map((seat) => seat.serialize()),
+      rotation: this.rotation,
+    };
+  }
+
+  static deserialize(data) {
+    const row = new Row(data);
+    row.seats = data.seats.map((seatData) => Seat.deserialize(seatData));
+    return row;
   }
 
   addSeat(seat) {
@@ -196,7 +277,14 @@ class Row {
   }
 
   draw(ctx) {
+    ctx.save();
+    ctx.translate(this.startX, this.startY);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.translate(-this.startX, -this.startY);
+
     this.seats.forEach((seat) => seat.draw(ctx));
+
+    ctx.restore();
   }
 }
 
@@ -208,6 +296,22 @@ class Seat {
     this.y = y;
     this.radius = radius;
     this.isBuyed = isBuyed;
+  }
+
+  serialize() {
+    return {
+      type: "Seat",
+      rowName: this.rowName,
+      number: this.number,
+      x: this.x,
+      y: this.y,
+      radius: this.radius,
+      isBuyed: this.isBuyed,
+    };
+  }
+
+  static deserialize(data) {
+    return new Seat(data);
   }
 
   draw(ctx) {

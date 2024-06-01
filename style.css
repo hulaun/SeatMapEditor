@@ -6,7 +6,7 @@ canvas {
   border: 1px solid black;
   display: block;
 }
-.menu-bar {
+/* .menu-bar {
   position: fixed;
   display: flex; 
   left: 50%;
@@ -17,6 +17,33 @@ canvas {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   border-radius: 15px; 
   max-width: fit-content;
+} */
+.dropdown-toggle::after {
+  display: none !important;
+}
+.menu-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3rem;
+  background-color: #343a40;
+  color: white;
+  height: 50px;
+}
+.menu-bar button {
+  width: 2.5rem;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+.menu-bar button:hover {
+  color: #ddd;
 }
 input[type="file"] {
   display: none;
@@ -28,6 +55,16 @@ input[type="file"] {
   bottom: 0;
   width: 15rem;
   background-color: #fff;
+  padding: 10px;
+}
+.editor-panel {
+  position: absolute;
+  right: 0;
+  top: 50px;
+  bottom: 0;
+  width: 300px;
+  background-color: #343a40;
+  color: white;
   padding: 10px;
   border: 1px solid #ccc;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);

@@ -5,6 +5,7 @@ const redoButton = document.getElementById("redoButton");
 const saveButton = document.getElementById("saveButton");
 const loadButton = document.getElementById("loadButton");
 
+const zoomOutButton = document.getElementById("zoomOutButton");
 const editorTitle = document.getElementById("editorTitle");
 const editorContent = document.getElementById("editorContent");
 
@@ -12,11 +13,27 @@ function removeEventListeners() {
   canvas.removeEventListener("mousedown", startDrawing);
   canvas.removeEventListener("mousemove", drawAreaPreview);
   canvas.removeEventListener("mouseup", finishAreaDrawing);
-  canvas.removeEventListener("click", selectShape);
+  canvas.removeEventListener("mousedown", selectShape);
+  canvas.removeEventListener("dblclick", zoomInArea);
+  canvas.removeEventListener("mousemove", dragShape);
+  canvas.removeEventListener("mouseup", stopDragShape);
 }
+
+function reset() {
+  selectedShape = null;
+  removeEventListeners();
+  drawAll();
+}
+
+document.getElementById("zoomOutButton").addEventListener("click", () => {
+  shapes.forEach((s) => (s.isHidden = false));
+  restoreCanvasState(currentStateIndex); // Restore state to undo zoom in
+  document.getElementById("zoomOutButton").style.display = "none";
+});
 
 insertAreaButton.addEventListener("click", () => {
   reset();
+  selectedShape = null;
   canvas.addEventListener("mousedown", startDrawing);
   setEditorTitle("<h4>Insert Options</h4>");
   setEditorContent(`
@@ -39,12 +56,18 @@ selectButton.addEventListener("click", () => {
   setEditorContent("");
 });
 
-undoButton.addEventListener("click", () => {
-  undoLastAction();
+document.getElementById("undoButton").addEventListener("click", () => {
+  if (currentStateIndex > 0) {
+    currentStateIndex--;
+    restoreCanvasState(currentStateIndex);
+  }
 });
 
-redoButton.addEventListener("click", () => {
-  redoLastAction();
+document.getElementById("redoButton").addEventListener("click", () => {
+  if (currentStateIndex < canvasStates.length - 1) {
+    currentStateIndex++;
+    restoreCanvasState(currentStateIndex);
+  }
 });
 
 saveButton.addEventListener("click", () => {

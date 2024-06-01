@@ -10,25 +10,13 @@ function setEditorContent(content) {
   `;
 }
 
-function reset() {
-  selectedShape = null;
-  removeEventListeners();
-  drawAll();
-}
-
 function startDrawing(event) {
+  console.log("why");
   startX = event.clientX;
   startY = event.clientY;
   isDrawing = true;
-  console.log("start");
-  if (selectedShape != null) {
-    console.log("start");
-    canvas.addEventListener("mousemove", drawSeatPreview);
-    canvas.addEventListener("mouseup", finishSeatDrawing);
-  } else {
-    canvas.addEventListener("mousemove", drawAreaPreview);
-    canvas.addEventListener("mouseup", finishAreaDrawing);
-  }
+  canvas.addEventListener("mousemove", drawAreaPreview);
+  canvas.addEventListener("mouseup", finishAreaDrawing);
 }
 
 function drawAreaPreview(event) {
@@ -68,7 +56,7 @@ function finishAreaDrawing(event) {
     height: height,
   });
   shapes.push(finalRect);
-  saveStateBeforeChanges();
+  saveCanvasState();
   drawAll();
 }
 
@@ -229,25 +217,25 @@ function selectShape(event) {
 
       document.getElementById("positionX").addEventListener("input", (e) => {
         shape.x = parseInt(e.target.value, 10);
-        saveStateBeforeChanges();
+        saveCanvasState();
         drawAll();
       });
 
       document.getElementById("positionY").addEventListener("input", (e) => {
         shape.y = parseInt(e.target.value, 10);
-        saveStateBeforeChanges();
+        saveCanvasState();
         drawAll();
       });
 
       document.getElementById("curveWidth").addEventListener("input", (e) => {
         shape.width = parseInt(e.target.value, 10);
-        saveStateBeforeChanges();
+        saveCanvasState();
         drawAll();
       });
 
       document.getElementById("curveHeight").addEventListener("input", (e) => {
         shape.height = parseInt(e.target.value, 10);
-        saveStateBeforeChanges();
+        saveCanvasState();
         drawAll();
       });
 
@@ -258,7 +246,7 @@ function selectShape(event) {
           shape.topRightBorderRadius = parseInt(e.target.value, 10);
           shape.bottomLeftBorderRadius = parseInt(e.target.value, 10);
           shape.bottomRightBorderRadius = parseInt(e.target.value, 10);
-          saveStateBeforeChanges();
+          saveCanvasState();
           drawAll();
         });
 
@@ -266,7 +254,7 @@ function selectShape(event) {
         .getElementById("topLeftBorderRadius")
         .addEventListener("input", (e) => {
           shape.topLeftBorderRadius = parseInt(e.target.value, 10);
-          saveStateBeforeChanges();
+          saveCanvasState();
           drawAll();
         });
 
@@ -274,7 +262,7 @@ function selectShape(event) {
         .getElementById("topRightBorderRadius")
         .addEventListener("input", (e) => {
           shape.topRightBorderRadius = parseInt(e.target.value, 10);
-          saveStateBeforeChanges();
+          saveCanvasState();
           drawAll();
         });
 
@@ -282,7 +270,7 @@ function selectShape(event) {
         .getElementById("bottomLeftBorderRadius")
         .addEventListener("input", (e) => {
           shape.bottomLeftBorderRadius = parseInt(e.target.value, 10);
-          saveStateBeforeChanges();
+          saveCanvasState();
           drawAll();
         });
 
@@ -290,13 +278,13 @@ function selectShape(event) {
         .getElementById("bottomRightBorderRadius")
         .addEventListener("input", (e) => {
           shape.bottomRightBorderRadius = parseInt(e.target.value, 10);
-          saveStateBeforeChanges();
+          saveCanvasState();
           drawAll();
         });
 
       document.getElementById("rotation").addEventListener("input", (e) => {
         shape.rotation = parseInt(e.target.value, 10);
-        saveStateBeforeChanges();
+        saveCanvasState();
         drawAll();
       });
 
@@ -324,25 +312,7 @@ function dragShape(event) {
 
 function stopDragShape(event) {
   canvas.removeEventListener("mousemove", dragShape);
-  canvas.removeEventListener("click", stopDragShape);
-  saveStateBeforeChanges();
-}
-
-function undoLastAction() {
-  if (currentStateIndex > 0) {
-    currentStateIndex--;
-    restoreCanvasState(currentStateIndex);
-  }
-}
-
-function redoLastAction() {
-  if (currentStateIndex < canvasStates.length - 1) {
-    currentStateIndex++;
-    restoreCanvasState(currentStateIndex);
-  }
-}
-
-function saveStateBeforeChanges() {
+  canvas.removeEventListener("mouseup", stopDragShape);
   saveCanvasState();
 }
 
@@ -350,136 +320,54 @@ function zoomInArea(event) {
   const mouseX = event.clientX;
   const mouseY = event.clientY;
 
-  // Find the clicked area
-  let clickedShape = null;
   for (let i = shapes.length - 1; i >= 0; i--) {
     const shape = shapes[i];
+    if (shape instanceof Stage) continue;
     const minX = Math.min(shape.x, shape.x + shape.width);
     const maxX = Math.max(shape.x, shape.x + shape.width);
     const minY = Math.min(shape.y, shape.y + shape.height);
     const maxY = Math.max(shape.y, shape.y + shape.height);
 
     if (mouseX >= minX && mouseX <= maxX && mouseY >= minY && mouseY <= maxY) {
-      clickedShape = shape;
+      zoomInOnShape(shape);
       break;
     }
   }
-
-  if (!clickedShape) return; // If no shape was clicked, return
-
-  // Zoom in on the clicked area
-  const zoomedWidth = window.innerWidth / 1.7;
-  const zoomedHeight = (clickedShape.height * zoomedWidth) / clickedShape.width;
-  const zoomedX = 100;
-  const zoomedY = window.innerHeight / 5;
-
-  // Hide other areas and stage
-  console.log(clickedShape);
-  shapes.forEach((shape) => {
-    if (shape !== clickedShape) {
-      shape.isHidden = true;
-    }
-  });
-
-  // Set the clicked area to the zoomed size and position
-  clickedShape.width = zoomedWidth;
-  clickedShape.height = zoomedHeight;
-  clickedShape.x = zoomedX;
-  clickedShape.y = zoomedY;
-
-  // Redraw canvas with the updated state
-  drawAll();
-
-  // Show editor for the clicked area
-  showEditorForArea(clickedShape);
 }
-function zoomOutArea() {
-  // Reset all shapes to be visible
-  shapes.forEach((shape) => {
-    shape.isHidden = false;
+
+function zoomInOnShape(shape) {
+  saveCanvasState(); // Save state before zooming in
+
+  shapes.forEach((s) => (s.isHidden = s !== shape));
+
+  zoomedWidth = window.innerWidth / 1.7;
+  shape.height = (shape.height * zoomedWidth) / shape.width;
+  shape.width = zoomedWidth;
+  shape.x = 100;
+  shape.y = window.innerHeight / 5;
+
+  document.getElementById("zoomOutButton").style.display = "block";
+
+  setEditorTitle("<h4>Zoomed-In Editor</h4>");
+  setEditorContent(`
+    <label for="seatNumber">Number of Seats:</label>
+    <input type="number" id="seatNumber" min="1" max="100">
+    <br>
+    <button id="addSeatsButton" class="btn btn-primary">Add Seats</button>
+  `);
+
+  document.getElementById("addSeatsButton").addEventListener("click", () => {
+    const seatNumber = parseInt(
+      document.getElementById("seatNumber").value,
+      10
+    );
+    if (!isNaN(seatNumber) && seatNumber > 0) {
+      for (let i = 0; i < seatNumber; i++) {
+        shape.addSeat(); // Assume you have a method to add seats to the shape
+      }
+      drawAll();
+    }
   });
 
-  // Reset canvas size to original
-  canvas.width = window.innerWidth * 2;
-  canvas.height = window.innerHeight * 2;
-
-  // Clear editor content
-  editorTitle.innerHTML = "";
-  editorContent.innerHTML = "";
-
-  // Redraw canvas with the updated state
   drawAll();
-}
-function showEditorForArea(area) {
-  // Clear editor content
-  editorTitle.innerHTML = "";
-  editorContent.innerHTML = "";
-
-  // Display editor title
-  editorTitle.innerHTML = "<h4>Edit Area</h4>";
-
-  // Example editor content, you can customize this as needed
-  editorContent.innerHTML = `
-      <label for="seatType">Seat Type:</label>
-      <select id="seatType">
-          <option value="single">Single Seat</option>
-          <option value="row">Row of Seats</option>
-      </select>
-      <div id="seatOptions"></div>
-      <button id="addSeatButton" class="btn btn-primary">Add Seat</button>
-  `;
-
-  const seatTypeSelect = document.getElementById("seatType");
-  const seatOptionsDiv = document.getElementById("seatOptions");
-
-  // Event listener for seat type selection
-  seatTypeSelect.addEventListener("change", () => {
-    const selectedType = seatTypeSelect.value;
-    if (selectedType === "single") {
-      seatOptionsDiv.innerHTML = `
-              <label for="seatRadius">Seat Radius:</label>
-              <input type="range" id="seatRadius" min="1" max="50" step="1">
-          `;
-    } else if (selectedType === "row") {
-      seatOptionsDiv.innerHTML = `
-              <label for="rowSeatRadius">Seat Radius:</label>
-              <input type="range" id="rowSeatRadius" min="1" max="50" step="1">
-              <br>
-              <label for="rowNumberOfSeats">Number of Seats:</label>
-              <input type="number" id="rowNumberOfSeats" min="1" max="10" value="1">
-              <br>
-              <label for="rowSpacing">Spacing:</label>
-              <input type="number" id="rowSpacing" min="0" max="50" value="10">
-          `;
-    }
-  });
-
-  // Event listener for adding a seat
-  const addSeatButton = document.getElementById("addSeatButton");
-  addSeatButton.addEventListener("click", () => {
-    const selectedType = seatTypeSelect.value;
-    if (selectedType === "single") {
-      const seatRadius = document.getElementById("seatRadius").value;
-      // Add single seat to the area
-      area.createSeat({
-        startX: area.x + area.width / 2,
-        startY: area.y + area.height / 2,
-        seatRadius: parseInt(seatRadius),
-        isBuyed: false,
-      });
-    } else if (selectedType === "row") {
-      const rowSeatRadius = document.getElementById("rowSeatRadius").value;
-      const numberOfSeats = document.getElementById("rowNumberOfSeats").value;
-      const spacing = document.getElementById("rowSpacing").value;
-      // Add row of seats to the area
-      area.createRow({
-        startX: area.x + area.width / 4,
-        startY: area.y + area.height / 2,
-        seatRadius: parseInt(rowSeatRadius),
-        numberOfSeats: parseInt(numberOfSeats),
-        spacing: parseInt(spacing),
-      });
-    }
-    drawAll(); // Redraw canvas with the updated state
-  });
 }

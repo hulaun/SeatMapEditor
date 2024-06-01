@@ -15,6 +15,7 @@ function drawAll() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   shapes.forEach((shape) => {
     if (!shape.isHidden) {
+      console.log(selectedShape);
       if (shape === selectedShape) {
         ctx.strokeStyle = "red";
       } else {
@@ -31,24 +32,50 @@ function resizeCanvas() {
   canvas.height = window.innerHeight * 2;
   drawAll();
 }
+
 function saveCanvasState() {
-  const state = canvas.toDataURL();
+  const state = {
+    canvasImage: canvas.toDataURL(),
+    shapes: shapes.map((shape) => shape.serialize()),
+  };
+
+  console.log(state);
   if (currentStateIndex < canvasStates.length - 1) {
     // If there are redo states ahead, remove them
     canvasStates.splice(currentStateIndex + 1);
   }
+
   canvasStates.push(state);
   currentStateIndex++;
 }
 
-// Function to restore the canvas state
 function restoreCanvasState(index) {
-  const state = new Image();
-  state.onload = function () {
+  const state = canvasStates[index];
+
+  // Restore the shapes list
+  shapes = state.shapes.map((shapeData) => {
+    console.log(shapeData.type);
+    switch (shapeData.type) {
+      case "RoundedBorderRectangle":
+        return RoundedBorderRectangle.deserialize(shapeData);
+      case "Stage":
+        return Stage.deserialize(shapeData);
+      case "Area":
+        return Area.deserialize(shapeData);
+      // Add cases for other shape types as needed
+      default:
+        throw new Error("Unknown shape type: " + shapeData.type);
+    }
+  });
+
+  // Restore the canvas image
+  const image = new Image();
+  image.onload = function () {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(state, 0, 0);
+    ctx.drawImage(image, 0, 0);
+    drawAll();
   };
-  state.src = canvasStates[index];
+  image.src = state.canvasImage;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
