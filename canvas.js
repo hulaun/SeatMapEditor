@@ -80,25 +80,6 @@ function restoreCanvasState(index) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const dropdownMenuButton = document.getElementById("dropdownMenuButton");
-  const customDropdownMenu = document.getElementById("customDropdownMenu");
-
-  dropdownMenuButton.addEventListener("click", (event) => {
-    customDropdownMenu.classList.toggle("show");
-  });
-
-  // Close the dropdown if the user clicks outside of it
-  window.addEventListener("click", (event) => {
-    if (
-      !event.target.matches("#dropdownMenuButton") &&
-      !event.target.matches("#dropdownMenuButton *")
-    ) {
-      if (customDropdownMenu.classList.contains("show")) {
-        customDropdownMenu.classList.remove("show");
-      }
-    }
-  });
-
   var map = new FirstTemplate(ctx, 100, 300, 700, 800);
   shapes = [...shapes, ...map.shapes];
   drawAll();

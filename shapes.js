@@ -99,7 +99,7 @@ class RoundedBorderRectangle extends Shape {
   }
 }
 class Stage extends RoundedBorderRectangle {
-  constructor({ name, x, y, width, height, color = "lightgrey" }) {
+  constructor({ name = "Stage", x, y, width, height, color = "lightgrey" }) {
     super({ x, y, width, height, color });
     this.name = name;
   }

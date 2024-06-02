@@ -1,4 +1,8 @@
-const insertAreaButton = document.getElementById("insertArea");
+const insertArea = document.getElementById("insertArea");
+const insertStage = document.getElementById("insertStage");
+const insertAreaDropDown = document.getElementById("insertAreaDropDown");
+const insertSeats = document.getElementById("insertSeats");
+const insertSeatDropDown = document.getElementById("insertSeatDropDown");
 const selectButton = document.getElementById("selectEditMode");
 const undoButton = document.getElementById("undoButton");
 const redoButton = document.getElementById("redoButton");
@@ -6,13 +10,18 @@ const saveButton = document.getElementById("saveButton");
 const loadButton = document.getElementById("loadButton");
 const panningButton = document.getElementById("panningButton");
 const removeButton = document.getElementById("removeButton");
+const mainMenuBar = document.getElementById("mainMenuBar");
+const editMenuBar = document.getElementById("editMenuBar");
+const backButton = document.getElementById("backButton");
+const dropdownMenuButton = document.getElementById("dropdownMenuButton");
+const mapDropDown = document.getElementById("mapDropDown");
 
-const zoomOutButton = document.getElementById("zoomOutButton");
 const editorTitle = document.getElementById("editorTitle");
 const editorContent = document.getElementById("editorContent");
 
 function removeEventListeners() {
-  canvas.removeEventListener("mousedown", startDrawing);
+  canvas.removeEventListener("mousedown", startStageDrawing);
+  canvas.removeEventListener("mousedown", startAreaDrawing);
   canvas.removeEventListener("mousemove", drawAreaPreview);
   canvas.removeEventListener("mouseup", finishAreaDrawing);
   canvas.removeEventListener("mousedown", selectShape);
@@ -30,28 +39,58 @@ function reset() {
   drawAll();
 }
 
-zoomOutButton.addEventListener("click", () => {
+dropdownMenuButton.addEventListener("click", (event) => {
+  mapDropDown.classList.toggle("show");
+});
+
+// Close the dropdown if the user clicks outside of it
+
+window.addEventListener("click", (event) => {
+  if (
+    !event.target.matches("#dropdownMenuButton") &&
+    !event.target.matches("#dropdownMenuButton *")
+  ) {
+    if (mapDropDown.classList.contains("show")) {
+      mapDropDown.classList.remove("show");
+    }
+  }
+  if (
+    !event.target.matches("#insertArea") &&
+    !event.target.matches("#insertArea *")
+  ) {
+    if (insertAreaDropDown.classList.contains("show")) {
+      insertAreaDropDown.classList.remove("show");
+    }
+  }
+  if (
+    !event.target.matches("#insertSeats") &&
+    !event.target.matches("#insertSeats *")
+  ) {
+    if (insertSeatDropDown.classList.contains("show")) {
+      insertSeatDropDown.classList.remove("show");
+    }
+  }
+});
+backButton.addEventListener("click", () => {
   shapes.forEach((s) => (s.isHidden = false));
-  restoreCanvasState(currentStateIndex); // Restore state to undo zoom in
-  zoomOutButton.style.display = "none";
+  restoreCanvasState(currentStateIndex);
+  mainMenuBar.style.display = "flex";
+  editMenuBar.style.display = "none";
 });
-
-insertAreaButton.addEventListener("click", () => {
+insertStage.addEventListener("click", () => {
   reset();
-  canvas.addEventListener("mousedown", startDrawing);
-  setEditorTitle("<h4>Insert Options</h4>");
-  setEditorContent(`
-    <label for="curveWidth">Width:</label>
-    <input type="range" id="curveWidth" min="1" max="10" step="1">
-    <br>
-    <label for="curveHeight">Height:</label>
-    <input type="range" id="curveHeight" min="1" max="10" step="1">
-    <br>
-    <label for="curveBorderRadius">Border Radius:</label>
-    <input type="range" id="curveBorderRadius" min="0" max="50" step="1">
-  `);
+  canvas.addEventListener("mousedown", startStageDrawing);
 });
-
+insertArea.addEventListener("click", () => {
+  reset();
+  insertAreaDropDown.classList.toggle("show");
+  canvas.addEventListener("mousedown", startAreaDrawing);
+});
+insertSeats.addEventListener("click", () => {
+  reset();
+  insertSeatDropDown.classList.toggle("show");
+  // canvas.addEventListener("mousedown", startAreaDrawing);
+});
 selectButton.addEventListener("click", () => {
   reset();
   canvas.addEventListener("dblclick", zoomInArea);
