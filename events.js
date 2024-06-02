@@ -4,6 +4,8 @@ const undoButton = document.getElementById("undoButton");
 const redoButton = document.getElementById("redoButton");
 const saveButton = document.getElementById("saveButton");
 const loadButton = document.getElementById("loadButton");
+const panningButton = document.getElementById("panningButton");
+const removeButton = document.getElementById("removeButton");
 
 const zoomOutButton = document.getElementById("zoomOutButton");
 const editorTitle = document.getElementById("editorTitle");
@@ -17,6 +19,9 @@ function removeEventListeners() {
   canvas.removeEventListener("dblclick", zoomInArea);
   canvas.removeEventListener("mousemove", dragShape);
   canvas.removeEventListener("mouseup", stopDragShape);
+  canvas.removeEventListener("mousedown", startPanning);
+  canvas.removeEventListener("mousemove", panCanvas);
+  canvas.removeEventListener("mouseup", stopPanning);
 }
 
 function reset() {
@@ -25,15 +30,14 @@ function reset() {
   drawAll();
 }
 
-document.getElementById("zoomOutButton").addEventListener("click", () => {
+zoomOutButton.addEventListener("click", () => {
   shapes.forEach((s) => (s.isHidden = false));
   restoreCanvasState(currentStateIndex); // Restore state to undo zoom in
-  document.getElementById("zoomOutButton").style.display = "none";
+  zoomOutButton.style.display = "none";
 });
 
 insertAreaButton.addEventListener("click", () => {
   reset();
-  selectedShape = null;
   canvas.addEventListener("mousedown", startDrawing);
   setEditorTitle("<h4>Insert Options</h4>");
   setEditorContent(`
@@ -56,14 +60,14 @@ selectButton.addEventListener("click", () => {
   setEditorContent("");
 });
 
-document.getElementById("undoButton").addEventListener("click", () => {
+undoButton.addEventListener("click", () => {
   if (currentStateIndex > 0) {
     currentStateIndex--;
     restoreCanvasState(currentStateIndex);
   }
 });
 
-document.getElementById("redoButton").addEventListener("click", () => {
+redoButton.addEventListener("click", () => {
   if (currentStateIndex < canvasStates.length - 1) {
     currentStateIndex++;
     restoreCanvasState(currentStateIndex);
@@ -74,15 +78,11 @@ saveButton.addEventListener("click", () => {
   // Serialize canvas data into JSON format
   const canvasData = {
     shapes: shapes.map((shape) => ({
-      type: shape.constructor.name,
       data: shape.serialize(),
     })),
   };
-
-  // Convert to JSON string
   const json = JSON.stringify(canvasData);
 
-  // Create a blob from the JSON string
   const blob = new Blob([json], { type: "application/json" });
 
   // Create a link element to trigger download
@@ -108,10 +108,12 @@ loadButton.addEventListener("change", (event) => {
 
     // Deserialize shapes and add them to canvas
     canvasData.shapes.forEach((shapeData) => {
-      const ShapeClass = eval(shapeData.type); // Assuming shape classes are globally accessible
-      const shape = new ShapeClass();
-      shape.deserialize(shapeData.data);
-      shapes.push(shape);
+      const ShapeClass = window[shapeData.data.type];
+      if (ShapeClass) {
+        const shapeInstance = new ShapeClass();
+        shapeInstance.deserialize(shapeData.data);
+        shapes.push(shapeInstance);
+      }
     });
 
     // Redraw canvas with loaded shapes
@@ -119,4 +121,15 @@ loadButton.addEventListener("change", (event) => {
   };
 
   reader.readAsText(file);
+});
+canvas.addEventListener("wheel", (event) => {
+  handleWheel(event);
+});
+panningButton.addEventListener("click", () => {
+  reset();
+  canvas.addEventListener("mousedown", startPanning);
+});
+
+removeButton.addEventListener("click", (event) => {
+  removeShape(event);
 });

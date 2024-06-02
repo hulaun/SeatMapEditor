@@ -5,6 +5,9 @@ const ctx = canvas.getContext("2d");
 
 let isDrawing = false;
 let startX, startY;
+let translateX = 0;
+let translateY = 0;
+const touchpadScalingFactor = 1.5;
 let selectedShape = null;
 let offsetX, offsetY;
 let canvasStates = []; // Stack to store canvas states
@@ -15,7 +18,6 @@ function drawAll() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   shapes.forEach((shape) => {
     if (!shape.isHidden) {
-      console.log(selectedShape);
       if (shape === selectedShape) {
         ctx.strokeStyle = "red";
       } else {
@@ -39,7 +41,6 @@ function saveCanvasState() {
     shapes: shapes.map((shape) => shape.serialize()),
   };
 
-  console.log(state);
   if (currentStateIndex < canvasStates.length - 1) {
     // If there are redo states ahead, remove them
     canvasStates.splice(currentStateIndex + 1);
@@ -79,6 +80,25 @@ function restoreCanvasState(index) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const dropdownMenuButton = document.getElementById("dropdownMenuButton");
+  const customDropdownMenu = document.getElementById("customDropdownMenu");
+
+  dropdownMenuButton.addEventListener("click", (event) => {
+    customDropdownMenu.classList.toggle("show");
+  });
+
+  // Close the dropdown if the user clicks outside of it
+  window.addEventListener("click", (event) => {
+    if (
+      !event.target.matches("#dropdownMenuButton") &&
+      !event.target.matches("#dropdownMenuButton *")
+    ) {
+      if (customDropdownMenu.classList.contains("show")) {
+        customDropdownMenu.classList.remove("show");
+      }
+    }
+  });
+
   var map = new FirstTemplate(ctx, 100, 300, 700, 800);
   shapes = [...shapes, ...map.shapes];
   drawAll();

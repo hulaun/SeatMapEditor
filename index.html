@@ -14,37 +14,28 @@
     <div class="canvas-container">
         <canvas id="myCanvas"></canvas>
     </div>
-    <!-- <div class="menu-bar">
-        <div class=" container text-light">
-            <div class="d-flex justify-content-start flex-wrap">
-                <button id="selectEditMode">Select</button>
-                <button id="insertArea">Add new Area</button>
-                <button id="undoButton">Undo</button>
-                <button id="redoButton">Redo</button>
-                <button id="saveButton">Save</button>
-                <button id="loadButton"><label for="fileInput">Load</label></button>
-                <input type="file" id="fileInput" class="m-2">
-            </div>
-        </div>
-    </div> -->
     <div class="menu-bar">
         <div class="d-flex">
             <div class="dropdown">
-            <button class="dropdown-toggle" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-list"></i>
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                <li><a class="dropdown-item" href="#">Save</a></li>
-                <li><a class="dropdown-item" href="#">Open</a></li>
-                <li><a class="dropdown-item" href="#">Quit</a></li>
-            </ul>
-        </div>
-            <button><i class="bi bi-cursor"></i></button>
-            <button><i class="bi bi-square"></i></button>
-            <button><i class="bi bi-hand-index-thumb"></i></button>
-            <button><i class="bi bi-arrow-counterclockwise"></i></button>
-            <button><i class="bi bi-arrow-clockwise"></i></button>
-            <button><i class="bi bi-trash"></i></button>
+                <button class="dropdown-toggle" id="dropdownMenuButton">
+                    <i class="bi bi-list"></i>
+                </button>
+                <ul class="dropdown-menu" id="customDropdownMenu">
+                    <li id="saveButton"><a class="dropdown-item" href="#">Save</a></li>
+                    <li id="loadButton"><a class="dropdown-item" href="#"><label for="fileInput">Open</label></a></li>
+                    <input type="file" id="fileInput" class="m-2">
+                    <li><a class="dropdown-item" href="#">Quit</a></li>
+                </ul>
+            </div>
+            <button id="selectEditMode"><i class="bi bi-cursor"></i></button>
+            <button id="insertArea"><i class="bi bi-square"></i></button>
+            <button id="panningButton" class="d-flex justify-content-center align-items-center"><svg width="18" height="20" viewBox="0 0 18 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.8035 4.40004V3.97719C14.8035 2.2736 13.2207 0.981458 11.5598 1.41681C10.5586 -0.516781 7.88438 -0.436703 6.9511 1.44599C5.3386 1.03345 3.73216 2.26349 3.73216 3.98438V8.91132C2.95275 8.6212 2.04045 8.71335 1.30705 9.25784C0.160376 10.1092 -0.091147 11.7318 0.738695 12.8966L5.42497 19.4753C5.54057 19.6376 5.69328 19.7698 5.87037 19.8611C6.04745 19.9524 6.24379 20 6.44302 20H15.1499C15.7321 20 16.2372 19.5981 16.368 19.0307L17.547 13.9152C17.6818 13.3302 17.7498 12.7317 17.7499 12.1314V6.99218C17.7499 5.40547 16.3623 4.18 14.8035 4.40004ZM15.8748 12.1313C15.8748 12.5896 15.8227 13.0481 15.7199 13.4941L14.6526 18.125H6.76509L2.26525 11.8087C1.70123 11.0169 2.85209 10.1378 3.41345 10.9257L4.47314 12.4131C4.8245 12.9063 5.60716 12.6587 5.60716 12.0505V3.98438C5.60716 2.98262 7.03571 3.01524 7.03571 4.01137V9.99999C7.03571 10.3452 7.31551 10.625 7.66071 10.625H7.92852C8.27371 10.625 8.55352 10.3452 8.55352 9.99999V2.6172C8.55352 1.61474 9.98207 1.64806 9.98207 2.64419V9.99999C9.98207 10.3452 10.2619 10.625 10.6071 10.625H10.8749C11.2201 10.625 11.4999 10.3452 11.4999 9.99999V3.9502C11.4999 2.94739 12.9284 2.98106 12.9284 3.97719V9.99999C12.9284 10.3452 13.2082 10.625 13.5534 10.625H13.8212C14.1664 10.625 14.4462 10.3452 14.4462 9.99999V7.01918C14.4462 5.9941 15.8747 6.01762 15.8747 6.99218V12.1313H15.8748Z" fill="white"/>
+                </svg>
+                </button>
+            <button id="undoButton"><i class="bi bi-arrow-counterclockwise"></i></button>
+            <button id="redoButton"><i class="bi bi-arrow-clockwise"></i></button>
+            <button id="removeButton"><i class="bi bi-trash"></i></button>
         </div>
         <div style="width: 20rem;font-size: 28px;">Event Name</div>
         <div>
@@ -63,5 +54,7 @@
     <script src="functions.js"></script>
     <script src="shapes.js"></script>
     <script src="templates.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
 </body>
 </html>

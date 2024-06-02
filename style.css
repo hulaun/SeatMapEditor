@@ -6,21 +6,71 @@ canvas {
   border: 1px solid black;
   display: block;
 }
-/* .menu-bar {
-  position: fixed;
-  display: flex; 
-  left: 50%;
-  transform: translateX(-50%);
-  top: 20px;
-  padding: 0.3rem;
-  border: 1px solid #ccc;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  border-radius: 15px; 
-  max-width: fit-content;
-} */
+
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  background-color: #343a40;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-toggle i::before {
+  transform: translateX(-10px);
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  background-color: #343a40;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  inset: 2.8rem auto auto -0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.dropdown-menu.show {
+  display: block;
+}
+
+.dropdown-menu li {
+  border-bottom: 1px solid #484848;
+}
+
+.dropdown-menu li:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item {
+  color: white;
+  padding: 10px 20px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-item:hover {
+  background-color: #575757;
+}
+
+#fileInput {
+  display: none;
+}
+
 .dropdown-toggle::after {
   display: none !important;
 }
+
 .menu-bar {
   position: fixed;
   left: 0;
@@ -45,9 +95,6 @@ canvas {
 .menu-bar button:hover {
   color: #ddd;
 }
-input[type="file"] {
-  display: none;
-}
 .editor-panel {
   position: fixed;
   right: 0;
@@ -68,20 +115,6 @@ input[type="file"] {
   padding: 10px;
   border: 1px solid #ccc;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-#advancedOptionsMenu {
-  position: static;
-  display: none; /* Hide by default */
-  background-color: #f8f9fa; /* Match Bootstrap's default dropdown color */
-  border: none;
-  border-radius: 5px;
-}
-.dropdown-item{
-  padding-left: 0;
-}
-
-#advancedOptionsDropdown[aria-expanded="true"] + #advancedOptionsMenu {
-  display: block; /* Show the dropdown menu when the button is clicked */
 }
 
 

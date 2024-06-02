@@ -11,7 +11,6 @@ function setEditorContent(content) {
 }
 
 function startDrawing(event) {
-  console.log("why");
   startX = event.clientX;
   startY = event.clientY;
   isDrawing = true;
@@ -130,8 +129,8 @@ function finishSeatDrawing(event) {
 }
 
 function selectShape(event) {
-  const mouseX = event.clientX;
-  const mouseY = event.clientY;
+  const mouseX = event.clientX - translateX;
+  const mouseY = event.clientY - translateY;
 
   selectedShape = null;
   for (let i = shapes.length - 1; i >= 0; i--) {
@@ -156,6 +155,7 @@ function selectShape(event) {
         <input type="range" id="positionY" min="0" max="1000" step="1" value="${
           shape.y
         }">
+        <br>
         <label for="curveWidth">Width:</label>
         <input type="range" id="curveWidth" min="1" max="1000" step="1" value="${
           shape.width
@@ -180,24 +180,24 @@ function selectShape(event) {
           <div class="dropdown-toggle" id="advancedOptionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
             Advanced
           </div>
-          <div class="dropdown-menu bg-white" aria-labelledby="advancedOptionsDropdown" id="advancedOptionsMenu">
+          <div class="dropdown-menu" aria-labelledby="advancedOptionsDropdown" id="advancedOptionsMenu">
             <label for="topLeftBorderRadius" class="dropdown-item">Top Left Border Radius:</label>
-            <input type="range" id="topLeftBorderRadius" class="form-range" min="0" max="${
+            <input class="ms-3" type="range" id="topLeftBorderRadius" class="form-range" min="0" max="${
               shape.height < shape.width ? shape.height / 2 : shape.width / 2
             }" step="1" value="${shape.topLeftBorderRadius}">
             <br>
             <label for="topRightBorderRadius" class="dropdown-item">Top Right Border Radius:</label>
-            <input type="range" id="topRightBorderRadius" class="form-range" min="0" max="${
+            <input class="ms-3" type="range" id="topRightBorderRadius" class="form-range" min="0" max="${
               shape.height < shape.width ? shape.height / 2 : shape.width / 2
             }" step="1" value="${shape.topRightBorderRadius}">
             <br>
             <label for="bottomLeftBorderRadius" class="dropdown-item">Bottom Left Border Radius:</label>
-            <input type="range" id="bottomLeftBorderRadius" class="form-range" min="0" max="${
+            <input class="ms-3" type="range" id="bottomLeftBorderRadius" class="form-range" min="0" max="${
               shape.height < shape.width ? shape.height / 2 : shape.width / 2
             }" step="1" value="${shape.bottomLeftBorderRadius}">
             <br>
             <label for="bottomRightBorderRadius" class="dropdown-item">Bottom Right Border Radius:</label>
-            <input type="range" id="bottomRightBorderRadius" class="form-range" min="0" max="${
+            <input class="ms-3" type="range" id="bottomRightBorderRadius" class="form-range" min="0" max="${
               shape.height < shape.width ? shape.height / 2 : shape.width / 2
             }" step="1" value="${shape.bottomRightBorderRadius}">
           </div>
@@ -316,9 +316,62 @@ function stopDragShape(event) {
   saveCanvasState();
 }
 
+function startPanning(e) {
+  isPanning = true;
+  if (!isPanning) return;
+  startX = e.clientX;
+  startY = e.clientY;
+  canvas.style.cursor = "move";
+  canvas.addEventListener("mousemove", panCanvas);
+  canvas.addEventListener("mouseup", stopPanning);
+}
+
+function panCanvas(e) {
+  if (!isPanning) return;
+  const deltaX = e.clientX - startX;
+  const deltaY = e.clientY - startY;
+  startX = e.clientX;
+  startY = e.clientY;
+  translateX += deltaX;
+  translateY += deltaY;
+  ctx.translate(deltaX, deltaY);
+  drawAll();
+}
+
+function stopPanning() {
+  if (!isPanning) return;
+  canvas.style.cursor = "default";
+  isPanning = false;
+}
+
+function handleWheel(event) {
+  if (event.ctrlKey) {
+    // If the user is using ctrl + wheel for zooming, ignore panning
+    return;
+  }
+
+  event.preventDefault(); // Prevent the default scrolling behavior
+  const deltaX = event.deltaX * touchpadScalingFactor;
+  const deltaY = event.deltaY * touchpadScalingFactor;
+  console.log(deltaX, deltaY);
+  translateX += deltaX;
+  translateY += deltaY;
+  ctx.translate(deltaX, deltaY);
+  drawAll();
+}
+
+function removeShape(e) {
+  shapes = shapes.filter((shape) => {
+    console.log(shape);
+    return shape !== selectedShape;
+  });
+
+  drawAll();
+}
+
 function zoomInArea(event) {
-  const mouseX = event.clientX;
-  const mouseY = event.clientY;
+  const mouseX = event.clientX - translateX;
+  const mouseY = event.clientY - translateY;
 
   for (let i = shapes.length - 1; i >= 0; i--) {
     const shape = shapes[i];
@@ -340,12 +393,20 @@ function zoomInOnShape(shape) {
 
   shapes.forEach((s) => (s.isHidden = s !== shape));
 
-  zoomedWidth = window.innerWidth / 1.7;
-  shape.height = (shape.height * zoomedWidth) / shape.width;
-  shape.width = zoomedWidth;
-  shape.x = 100;
-  shape.y = window.innerHeight / 5;
+  const zoomedWidth = window.innerWidth / 1.7;
+  const zoomedHeight = (shape.height * zoomedWidth) / shape.width;
 
+  // Calculate the new position to center the shape on the screen
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  const newX = centerX - zoomedWidth / 1.5;
+  const newY = centerY - zoomedHeight / 2;
+
+  // Update shape properties
+  shape.width = zoomedWidth;
+  shape.height = zoomedHeight;
+  shape.x = newX - translateX; // Adjust for the current translation
+  shape.y = newY - translateY; // Adjust for the current translation
   document.getElementById("zoomOutButton").style.display = "block";
 
   setEditorTitle("<h4>Zoomed-In Editor</h4>");
