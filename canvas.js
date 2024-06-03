@@ -4,11 +4,15 @@ canvas.height = window.innerHeight * 2;
 const ctx = canvas.getContext("2d");
 
 let isDrawing = false;
+let selectedType = "";
 let startX, startY;
 let translateX = 0;
 let translateY = 0;
 const touchpadScalingFactor = 1.5;
+const seatRadius = 10;
+const seatSpacing = 10;
 let selectedShape = null;
+let zoomedArea = null;
 let offsetX, offsetY;
 let canvasStates = []; // Stack to store canvas states
 let currentStateIndex = -1; // Index to track the current state
@@ -18,12 +22,17 @@ function drawAll() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   shapes.forEach((shape) => {
     if (!shape.isHidden) {
-      if (shape === selectedShape) {
+      if (zoomedArea != null) {
+        ctx.fillStyle = "lightgrey";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        zoomedArea.draw(ctx, true);
+      } else if (shape === selectedShape) {
         ctx.strokeStyle = "red";
+        shape.draw(ctx);
       } else {
         ctx.strokeStyle = "black";
+        shape.draw(ctx);
       }
-      shape.draw(ctx);
     }
   });
 }

@@ -22,7 +22,9 @@ canvas {
   display: flex;
   align-items: center;
 }
-
+.dropdown-icon .dropdown-menu.show{
+  transform: translateY(-8px);
+}
 .dropdown-toggle i::before {
   transform: translateX(-10px);
 }
@@ -31,10 +33,10 @@ canvas {
   display: none;
   position: absolute;
   background-color: #343a40;
-  min-width: 160px;
+  min-width: 45px;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   z-index: 1;
-  inset: 2.9rem auto auto -0.5rem;
+  inset: 2.9rem auto auto 0rem;
   padding: 0;
   margin: 0;
   list-style: none;
@@ -54,21 +56,30 @@ canvas {
 
 .dropdown-item {
   color: white;
-  padding: 10px 20px;
+  padding: 10px 10px 10px 10px;
   text-decoration: none;
   display: block;
+  font-size: 20px;
 }
 
 .dropdown-item:hover {
   background-color: #575757;
 }
+.dropdown-toggle::after {
+  display: none !important;
+}
+
+button svg {
+  fill: white;
+  width: 100%;
+}
+
+button:hover {
+  background-color: #575757;
+}
 
 #fileInput {
   display: none;
-}
-
-.dropdown-toggle::after {
-  display: none !important;
 }
 
 .menu-bar {

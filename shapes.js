@@ -27,6 +27,10 @@ class RoundedBorderRectangle extends Shape {
     y,
     width,
     height,
+    topLeftBorderRadius = 0,
+    topRightBorderRadius = 0,
+    bottomLeftBorderRadius = 0,
+    bottomRightBorderRadius = 0,
     borderRadius = 0,
     color = "white",
     rotation = 0,
@@ -36,10 +40,14 @@ class RoundedBorderRectangle extends Shape {
     this.y = y;
     this.width = width;
     this.height = height;
-    this.topLeftBorderRadius = borderRadius;
-    this.topRightBorderRadius = borderRadius;
-    this.bottomLeftBorderRadius = borderRadius;
-    this.bottomRightBorderRadius = borderRadius;
+    this.topLeftBorderRadius =
+      topLeftBorderRadius == 0 ? borderRadius : topLeftBorderRadius;
+    this.topRightBorderRadius =
+      topRightBorderRadius == 0 ? borderRadius : topRightBorderRadius;
+    this.bottomLeftBorderRadius =
+      bottomLeftBorderRadius == 0 ? borderRadius : bottomLeftBorderRadius;
+    this.bottomRightBorderRadius =
+      bottomRightBorderRadius == 0 ? borderRadius : bottomRightBorderRadius;
     this.color = color;
     this.rotation = rotation;
   }
@@ -62,6 +70,7 @@ class RoundedBorderRectangle extends Shape {
   }
 
   static deserialize(data) {
+    console.log(data);
     return new RoundedBorderRectangle(data);
   }
 
@@ -99,8 +108,33 @@ class RoundedBorderRectangle extends Shape {
   }
 }
 class Stage extends RoundedBorderRectangle {
-  constructor({ name = "Stage", x, y, width, height, color = "lightgrey" }) {
-    super({ x, y, width, height, color });
+  constructor({
+    name = "Stage",
+    x,
+    y,
+    width,
+    height,
+    borderRadius = 0,
+    topLeftBorderRadius = 0,
+    topRightBorderRadius = 0,
+    bottomLeftBorderRadius = 0,
+    bottomRightBorderRadius = 0,
+    rotation = 0,
+    color = "lightgrey",
+  }) {
+    super({
+      x,
+      y,
+      width,
+      height,
+      borderRadius: borderRadius,
+      topLeftBorderRadius: topLeftBorderRadius,
+      topRightBorderRadius: topRightBorderRadius,
+      bottomLeftBorderRadius: bottomLeftBorderRadius,
+      bottomRightBorderRadius: bottomRightBorderRadius,
+      rotation: rotation,
+      color: color,
+    });
     this.name = name;
   }
 
@@ -128,10 +162,35 @@ class Stage extends RoundedBorderRectangle {
 }
 
 class Area extends RoundedBorderRectangle {
-  constructor({ name, x, y, width, height }) {
-    super({ x, y, width, height });
+  constructor({
+    name,
+    x,
+    y,
+    width,
+    height,
+    topLeftBorderRadius = 0,
+    topRightBorderRadius = 0,
+    bottomLeftBorderRadius = 0,
+    bottomRightBorderRadius = 0,
+    borderRadius = 0,
+    color = "white",
+    rotation = 0,
+  }) {
+    super({
+      x,
+      y,
+      width,
+      height,
+      borderRadius,
+      topLeftBorderRadius: topLeftBorderRadius,
+      topRightBorderRadius: topRightBorderRadius,
+      bottomLeftBorderRadius: bottomLeftBorderRadius,
+      bottomRightBorderRadius: bottomRightBorderRadius,
+      color,
+      rotation,
+    });
     this.name = name;
-    this.rows = [];
+    this.shapes = [];
   }
 
   serialize() {
@@ -139,37 +198,70 @@ class Area extends RoundedBorderRectangle {
       ...super.serialize(),
       type: "Area",
       name: this.name,
-      rows: this.rows.map((row) => row.serialize()),
+      shapes: this.shapes.map((shape) => shape.serialize()),
     };
   }
 
   static deserialize(data) {
+    console.log(data);
     const area = new Area(data);
-    area.rows = data.rows.map((rowData) => Row.deserialize(rowData));
+    area.shapes = data.shapes.map((shapeData) => {
+      switch (shapeData.type) {
+        case "Row":
+          return Row.deserialize(shapeData);
+        case "Text":
+          return Text.deserialize(shapeData);
+        // Add more cases for other shape types if needed
+        default:
+          throw new Error(`Unknown shape type: ${shapeData.type}`);
+      }
+    });
     return area;
   }
 
-  addRow(row) {
-    this.rows.push(row);
+  addShape(shape) {
+    this.shapes.push(shape);
   }
 
-  draw(ctx) {
+  draw(ctx, isZoomed = false) {
     super.draw(ctx);
     ctx.font = `${this.width / 12}px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
     ctx.fillStyle = "lightgrey";
     ctx.fillText(this.name, this.x + this.width / 2, this.y + this.height / 2);
-
-    // Fill the rows and seats
-    this.rows.forEach((row) => row.draw(ctx));
-
+    if (isZoomed) {
+      console.log(this.shapes);
+      this.shapes.forEach((shape) => {
+        shape.draw(ctx);
+      });
+    }
     return "stage";
   }
 
-  createRow({ name = "", startX, startY, seatRadius, seatSpacing = 10 }) {
-    const row = new Row({ name, startX, startY, seatRadius, seatSpacing });
-    this.addRow(row);
+  // Add Text to the shapes
+  addText({ content, x, y, fontSize, fontFamily, color }) {
+    const text = new Text({ content, x, y, fontSize, fontFamily, color });
+    this.addShape(text);
+    return text;
+  }
+
+  createRow({
+    name = "",
+    startX,
+    startY,
+    seatRadius,
+    seatSpacing = 10,
+    rotation = 0,
+  }) {
+    const row = new Row({
+      name,
+      startX,
+      startY,
+      seatRadius,
+      seatSpacing,
+      rotation,
+    });
     return row;
   }
 
@@ -180,6 +272,7 @@ class Area extends RoundedBorderRectangle {
     seatRadius,
     numberOfSeats,
     seatSpacing = 10,
+    rotation,
   }) {
     const row = this.createRow({
       name,
@@ -187,6 +280,7 @@ class Area extends RoundedBorderRectangle {
       startY,
       seatRadius,
       seatSpacing,
+      rotation,
     });
 
     for (let seatIndex = 0; seatIndex < numberOfSeats; seatIndex++) {
@@ -195,13 +289,13 @@ class Area extends RoundedBorderRectangle {
         isBuyed: false,
       });
     }
+    this.addShape(row);
   }
 
   createSeatsForAllAvailableSpace({
     seatRadius,
     rowSpacing = 20,
     seatSpacing = 10,
-    isBuyed = false,
   }) {
     const rows = Math.floor(this.height / (seatRadius * 2 + rowSpacing));
     const seatsPerRow = Math.floor(this.width / (seatRadius * 2 + seatSpacing));
@@ -220,7 +314,47 @@ class Area extends RoundedBorderRectangle {
     }
   }
 }
+class Text {
+  constructor({
+    content,
+    x,
+    y,
+    fontSize,
+    fontFamily = "Arial",
+    color = "black",
+  }) {
+    this.content = content;
+    this.x = x;
+    this.y = y;
+    this.fontSize = fontSize;
+    this.fontFamily = fontFamily;
+    this.color = color;
+  }
 
+  serialize() {
+    return {
+      type: "Text",
+      content: this.content,
+      x: this.x,
+      y: this.y,
+      fontSize: this.fontSize,
+      fontFamily: this.fontFamily,
+      color: this.color,
+    };
+  }
+
+  static deserialize(data) {
+    return new Text(data);
+  }
+
+  draw(ctx) {
+    ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+    ctx.fillStyle = this.color;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.fillText(this.content, this.x, this.y);
+  }
+}
 class Row {
   constructor({
     name = "",
@@ -228,6 +362,7 @@ class Row {
     startY,
     seatRadius = 10,
     seatSpacing = 10,
+    rotation = 0,
   }) {
     this.name = name;
     this.startX = startX;
@@ -235,7 +370,7 @@ class Row {
     this.seatRadius = seatRadius;
     this.seatSpacing = seatSpacing;
     this.seats = [];
-    this.rotation = 0; // Added rotation property
+    this.rotation = rotation;
   }
 
   serialize() {

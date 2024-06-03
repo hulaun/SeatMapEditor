@@ -9,10 +9,11 @@ function setEditorContent(content) {
     ${content}
   `;
 }
+//--------Main menu functions---------
 //Area
 function startAreaDrawing(event) {
-  startX = event.clientX;
-  startY = event.clientY;
+  startX = event.clientX - translateX;
+  startY = event.clientY - translateY;
   isDrawing = true;
   canvas.addEventListener("mousemove", drawAreaPreview);
   canvas.addEventListener("mouseup", finishAreaDrawing);
@@ -21,8 +22,8 @@ function startAreaDrawing(event) {
 function drawAreaPreview(event) {
   if (!isDrawing) return;
 
-  const currentX = event.clientX;
-  const currentY = event.clientY;
+  const currentX = event.clientX - translateX;
+  const currentY = event.clientY - translateY;
   const width = currentX - startX;
   const height = currentY - startY;
 
@@ -39,8 +40,8 @@ function drawAreaPreview(event) {
 function finishAreaDrawing(event) {
   if (!isDrawing) return;
 
-  const endX = event.clientX;
-  const endY = event.clientY;
+  const endX = event.clientX - translateX;
+  const endY = event.clientY - translateY;
   const width = endX - startX;
   const height = endY - startY;
 
@@ -60,8 +61,8 @@ function finishAreaDrawing(event) {
 }
 //Stage
 function startStageDrawing(event) {
-  startX = event.clientX;
-  startY = event.clientY;
+  startX = event.clientX - translateX;
+  startY = event.clientY - translateY;
   isDrawing = true;
   canvas.addEventListener("mousemove", drawStagePreview);
   canvas.addEventListener("mouseup", finishStageDrawing);
@@ -70,12 +71,12 @@ function startStageDrawing(event) {
 function drawStagePreview(event) {
   if (!isDrawing) return;
 
-  const currentX = event.clientX;
-  const currentY = event.clientY;
+  const currentX = event.clientX - translateX;
+  const currentY = event.clientY - translateY;
   const width = currentX - startX;
   const height = currentY - startY;
 
-  drawAll();
+  drawAll(); // Clear and redraw the canvas
   const tempRect = new Stage({
     x: startX,
     y: startY,
@@ -88,8 +89,8 @@ function drawStagePreview(event) {
 function finishStageDrawing(event) {
   if (!isDrawing) return;
 
-  const endX = event.clientX;
-  const endY = event.clientY;
+  const endX = event.clientX - translateX;
+  const endY = event.clientY - translateY;
   const width = endX - startX;
   const height = endY - startY;
 
@@ -107,75 +108,6 @@ function finishStageDrawing(event) {
   saveCanvasState();
   drawAll();
 }
-//Seats
-function drawSeatPreview(event) {
-  if (!isDrawing) return;
-
-  const currentX = event.clientX;
-  const currentY = event.clientY;
-  drawAll();
-
-  if (selectedType === "single") {
-    console.log("preview");
-    drawSingleSeatPreview(currentX, currentY);
-  } else if (selectedType === "row") {
-    drawRowSeatPreview(currentX, currentY);
-  }
-}
-
-function drawSingleSeatPreview(x, y) {
-  const radius = Math.sqrt(Math.pow(startX - x) + Math.pow(startY - y));
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, 2 * Math.PI);
-  ctx.stroke();
-}
-
-function drawRowSeatPreview(x, y) {
-  const radius = parseInt(document.getElementById("rowSeatRadius").value, 10);
-  const numberOfSeats = parseInt(
-    document.getElementById("rowNumberOfSeats").value,
-    10
-  );
-  const spacing = parseInt(document.getElementById("rowSpacing").value, 10);
-
-  for (let i = 0; i < numberOfSeats; i++) {
-    ctx.beginPath();
-    ctx.arc(x + i * (2 * radius + spacing), y, radius, 0, 2 * Math.PI);
-    ctx.stroke();
-  }
-}
-
-function finishSeatDrawing(event) {
-  if (!isDrawing) return;
-  console.log("finish");
-
-  const endX = event.clientX;
-  const endY = event.clientY;
-  const radius = Math.sqrt(Math.pow(startX - endX) + Math.pow(startY - endY));
-  isDrawing = false;
-  canvas.removeEventListener("mousemove", drawSeatPreview);
-  canvas.removeEventListener("mouseup", finishSeatDrawing);
-
-  if (selectedType === "single") {
-    if (selectedShape.rows.length === 0) {
-      selectedShape
-        .createRow({
-          startX: endX,
-          startY: endY,
-          seatRadius: radius,
-          seatSpacing: 10,
-        })
-        .createSeat({ number: 5, isBuyed: false });
-    } else {
-      const row = selectedShape.rows[selectedShape.rows.length - 1];
-      row.createSeat({ number: 5, isBuyed: false });
-    }
-  } else if (selectedType === "row") {
-    createRowOfSeats(endX, endY);
-  }
-
-  drawAll();
-}
 
 function selectShape(event) {
   const mouseX = event.clientX - translateX;
@@ -183,17 +115,15 @@ function selectShape(event) {
 
   selectedShape = null;
   for (let i = shapes.length - 1; i >= 0; i--) {
-    const shape = shapes[i];
-    console.log(shape);
-    if (shape instanceof Area) {
-      roundedRectangleEditor(shape, mouseX, mouseY);
+    if (shapes[i] instanceof Area) {
+      roundedRectangleEditor(shapes[i], mouseX, mouseY);
       if (selectedShape == null) {
         continue;
       } else {
         break;
       }
-    } else if (shape instanceof Stage) {
-      roundedRectangleEditor(shape, mouseX, mouseY);
+    } else if (shapes[i] instanceof Stage) {
+      roundedRectangleEditor(shapes[i], mouseX, mouseY);
       if (selectedShape == null) {
         continue;
       } else {
@@ -261,7 +191,6 @@ function handleWheel(event) {
   event.preventDefault(); // Prevent the default scrolling behavior
   const deltaX = event.deltaX * touchpadScalingFactor;
   const deltaY = event.deltaY * touchpadScalingFactor;
-  console.log(deltaX, deltaY);
   translateX += deltaX;
   translateY += deltaY;
   ctx.translate(deltaX, deltaY);
@@ -276,23 +205,18 @@ function removeShape(e) {
 
   drawAll();
 }
-
 function zoomInArea(event) {
+  mainMapReset();
   const mouseX = event.clientX - translateX;
   const mouseY = event.clientY - translateY;
-
+  console.log("zoom");
   for (let i = shapes.length - 1; i >= 0; i--) {
-    const shape = shapes[i];
-    if (shape instanceof Stage) continue;
-    const minX = Math.min(shape.x, shape.x + shape.width);
-    const maxX = Math.max(shape.x, shape.x + shape.width);
-    const minY = Math.min(shape.y, shape.y + shape.height);
-    const maxY = Math.max(shape.y, shape.y + shape.height);
-
-    if (mouseX >= minX && mouseX <= maxX && mouseY >= minY && mouseY <= maxY) {
-      zoomInOnShape(shape);
+    if (shapes[i] instanceof Stage) continue;
+    if (isPointInRotatedRect(mouseX, mouseY, shapes[i])) {
+      zoomedArea = shapes[i];
+      zoomInOnShape(shapes[i]);
       mainMenuBar.style.display = "none";
-      editMenuBar.style.display = "flex";
+      areaMenuBar.style.display = "flex";
       break;
     }
   }
@@ -303,9 +227,15 @@ function zoomInOnShape(shape) {
 
   shapes.forEach((s) => (s.isHidden = s !== shape));
 
-  const zoomedWidth = window.innerWidth / 1.7;
-  const zoomedHeight = (shape.height * zoomedWidth) / shape.width;
+  let zoomedWidth, zoomedHeight;
 
+  if (shape.height > shape.width) {
+    zoomedHeight = window.innerHeight / 1.7;
+    zoomedWidth = (shape.width * zoomedHeight) / shape.height;
+  } else {
+    zoomedWidth = window.innerWidth / 1.7;
+    zoomedHeight = (shape.height * zoomedWidth) / shape.width;
+  }
   // Calculate the new position to center the shape on the screen
   const centerX = window.innerWidth / 2;
   const centerY = window.innerHeight / 2;
@@ -338,6 +268,94 @@ function zoomInOnShape(shape) {
       drawAll();
     }
   });
+
+  drawAll();
+}
+
+//---------Area functions----------
+
+//Seats
+function startDrawing(event) {
+  isDrawing = true;
+  startX = event.clientX;
+  startY = event.clientY;
+  canvas.addEventListener("mousemove", drawSeatPreview);
+  canvas.addEventListener("mouseup", finishSeatDrawing);
+}
+
+function drawSeatPreview(event) {
+  if (!isDrawing) return;
+
+  const currentX = event.clientX;
+  const currentY = event.clientY;
+  drawAll();
+
+  if (selectedType === "grid") {
+    drawGridSeatPreview(currentX, currentY);
+  } else if (selectedType === "row") {
+    drawRowSeatPreview(currentX, currentY);
+  }
+}
+
+function drawGridSeatPreview(x, y) {
+  const radius = Math.sqrt(Math.pow(startX - x) + Math.pow(startY - y));
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, 2 * Math.PI);
+  ctx.stroke();
+}
+
+function drawRowSeatPreview(x, y) {
+  const seatRadius = 10;
+  const seatSpacing = 10;
+
+  // Calculate the angle of the row
+  const angle = Math.atan2(y - startY, x - startX);
+
+  // Calculate the total width of the row
+  const totalWidth = Math.sqrt(
+    Math.pow(x - startX, 2) + Math.pow(y - startY, 2)
+  );
+  const numberOfSeats = Math.floor(totalWidth / (2 * seatRadius + seatSpacing));
+
+  for (let i = 0; i < numberOfSeats; i++) {
+    const seatX = startX + i * (2 * seatRadius + seatSpacing) * Math.cos(angle);
+    const seatY = startY + i * (2 * seatRadius + seatSpacing) * Math.sin(angle);
+    ctx.beginPath();
+    ctx.arc(seatX, seatY, seatRadius, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
+}
+
+function finishSeatDrawing(event) {
+  if (!isDrawing) return;
+  isDrawing = false;
+
+  canvas.removeEventListener("mousemove", drawSeatPreview);
+  canvas.removeEventListener("mouseup", finishSeatDrawing);
+
+  const endX = event.clientX;
+  const endY = event.clientY;
+
+  // Calculate the angle of the row
+  const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
+
+  // Calculate the total width of the row
+  const totalWidth = Math.sqrt(
+    Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)
+  );
+  const numberOfSeats = Math.floor(totalWidth / (2 * seatRadius + seatSpacing));
+  console.log("1");
+  if (selectedType === "row") {
+    zoomedArea.createSeatsForRow({
+      name: "Row",
+      startX,
+      startY,
+      seatRadius,
+      numberOfSeats,
+      seatSpacing,
+      rotation: angle,
+    });
+  }
 
   drawAll();
 }

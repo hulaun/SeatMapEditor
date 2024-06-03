@@ -2,8 +2,13 @@ const insertArea = document.getElementById("insertArea");
 const insertStage = document.getElementById("insertStage");
 const insertAreaDropDown = document.getElementById("insertAreaDropDown");
 const insertSeats = document.getElementById("insertSeats");
+const insertGridSeats = document.getElementById("insertGridSeats");
 const insertSeatDropDown = document.getElementById("insertSeatDropDown");
-const selectButton = document.getElementById("selectEditMode");
+const insertCircleTable = document.getElementById("insertCircleTable");
+const insertTableSeatDropDown = document.getElementById(
+  "insertTableSeatDropDown"
+);
+const selectButton = document.getElementById("selectArea");
 const undoButton = document.getElementById("undoButton");
 const redoButton = document.getElementById("redoButton");
 const saveButton = document.getElementById("saveButton");
@@ -11,15 +16,20 @@ const loadButton = document.getElementById("loadButton");
 const panningButton = document.getElementById("panningButton");
 const removeButton = document.getElementById("removeButton");
 const mainMenuBar = document.getElementById("mainMenuBar");
-const editMenuBar = document.getElementById("editMenuBar");
+const areaMenuBar = document.getElementById("areaMenuBar");
 const backButton = document.getElementById("backButton");
 const dropdownMenuButton = document.getElementById("dropdownMenuButton");
 const mapDropDown = document.getElementById("mapDropDown");
+const selectSeatsMode = document.getElementById("selectSeatsMode");
+const seatUndoButton = document.getElementById("seatUndoButton");
+const seatRedoButton = document.getElementById("seatRedoButton");
+const seatRemoveButton = document.getElementById("seatRemoveButton");
+const insertText = document.getElementById("insertText");
 
 const editorTitle = document.getElementById("editorTitle");
 const editorContent = document.getElementById("editorContent");
 
-function removeEventListeners() {
+function removeMainMapEventListeners() {
   canvas.removeEventListener("mousedown", startStageDrawing);
   canvas.removeEventListener("mousedown", startAreaDrawing);
   canvas.removeEventListener("mousemove", drawAreaPreview);
@@ -33,17 +43,11 @@ function removeEventListeners() {
   canvas.removeEventListener("mouseup", stopPanning);
 }
 
-function reset() {
+function mainMapReset() {
   selectedShape = null;
-  removeEventListeners();
+  removeMainMapEventListeners();
   drawAll();
 }
-
-dropdownMenuButton.addEventListener("click", (event) => {
-  mapDropDown.classList.toggle("show");
-});
-
-// Close the dropdown if the user clicks outside of it
 
 window.addEventListener("click", (event) => {
   if (
@@ -70,29 +74,31 @@ window.addEventListener("click", (event) => {
       insertSeatDropDown.classList.remove("show");
     }
   }
+  if (
+    !event.target.matches("#insertCircleTable") &&
+    !event.target.matches("#insertCircleTable *")
+  ) {
+    if (insertTableSeatDropDown.classList.contains("show")) {
+      insertTableSeatDropDown.classList.remove("show");
+    }
+  }
 });
-backButton.addEventListener("click", () => {
-  shapes.forEach((s) => (s.isHidden = false));
-  restoreCanvasState(currentStateIndex);
-  mainMenuBar.style.display = "flex";
-  editMenuBar.style.display = "none";
+dropdownMenuButton.addEventListener("click", (event) => {
+  mapDropDown.classList.toggle("show");
 });
+
 insertStage.addEventListener("click", () => {
-  reset();
+  mainMapReset();
   canvas.addEventListener("mousedown", startStageDrawing);
 });
 insertArea.addEventListener("click", () => {
-  reset();
+  mainMapReset();
   insertAreaDropDown.classList.toggle("show");
   canvas.addEventListener("mousedown", startAreaDrawing);
 });
-insertSeats.addEventListener("click", () => {
-  reset();
-  insertSeatDropDown.classList.toggle("show");
-  // canvas.addEventListener("mousedown", startAreaDrawing);
-});
+
 selectButton.addEventListener("click", () => {
-  reset();
+  mainMapReset();
   canvas.addEventListener("dblclick", zoomInArea);
   canvas.addEventListener("mousedown", selectShape);
   setEditorTitle("<h4>Select and Edit Options</h4>");
@@ -165,10 +171,74 @@ canvas.addEventListener("wheel", (event) => {
   handleWheel(event);
 });
 panningButton.addEventListener("click", () => {
-  reset();
+  mainMapReset();
   canvas.addEventListener("mousedown", startPanning);
 });
 
 removeButton.addEventListener("click", (event) => {
   removeShape(event);
 });
+
+//-------Area Events---------
+
+function removeAreaEventListeners() {
+  canvas.removeEventListener("mousedown", startStageDrawing);
+  canvas.removeEventListener("mousedown", startAreaDrawing);
+  canvas.removeEventListener("mousemove", drawAreaPreview);
+  canvas.removeEventListener("mouseup", finishAreaDrawing);
+  canvas.removeEventListener("mousedown", selectShape);
+  canvas.removeEventListener("dblclick", zoomInArea);
+  canvas.removeEventListener("mousemove", dragShape);
+  canvas.removeEventListener("mouseup", stopDragShape);
+  canvas.removeEventListener("mousedown", startPanning);
+  canvas.removeEventListener("mousemove", panCanvas);
+  canvas.removeEventListener("mouseup", stopPanning);
+}
+
+function areaReset() {
+  selectedShape = null;
+  removeAreaEventListeners();
+  drawAll();
+}
+
+backButton.addEventListener("click", () => {
+  zoomedArea = null;
+  shapes.forEach((s) => (s.isHidden = false));
+  restoreCanvasState(currentStateIndex);
+  mainMenuBar.style.display = "flex";
+  areaMenuBar.style.display = "none";
+});
+
+insertSeats.addEventListener("click", (event) => {
+  insertSeatDropDown.classList.toggle("show");
+  selectedType = "row";
+  canvas.addEventListener("mousedown", startDrawing);
+});
+
+insertGridSeats.addEventListener("click", () => {
+  selectedType = "grid";
+  canvas.addEventListener("mousedown", startDrawing);
+});
+
+insertCircleTable.addEventListener("click", () => {
+  insertTableSeatDropDown.classList.toggle("show");
+  // canvas.addEventListener("mousedown", startAreaDrawing);
+});
+
+selectSeatsMode.addEventListener("click", () => {
+  canvas.addEventListener("mousedown", selectShape);
+});
+
+seatUndoButton.addEventListener("click", () => {
+  undoAction();
+});
+
+seatRedoButton.addEventListener("click", () => {
+  redoAction();
+});
+
+seatRemoveButton.addEventListener("click", () => {
+  removeSelectedShape();
+});
+
+insertText.addEventListener("click", () => {});
