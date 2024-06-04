@@ -19,6 +19,38 @@ function isPointInRotatedRect(x, y, rect) {
   return localX >= 0 && localX <= rw && localY >= 0 && localY <= rh;
 }
 
+function isPointInRotatedRow(x, y, row) {
+  const { startX, startY, rotation, seatRadius, seatSpacing, seats } = row;
+
+  // Calculate the width and height of the bounding rectangle
+  const totalWidth =
+    (seats.length - 1) * (seatRadius * 2 + seatSpacing) + seatRadius * 2;
+  const rectWidth = totalWidth;
+  const rectHeight = seatRadius * 2;
+
+  // Translate point to row's local coordinates
+  const translatedX = x - startX;
+  const translatedY = y - startY;
+
+  // Convert rotation to radians
+  const rotationRadians = (rotation * Math.PI) / 180;
+
+  // Rotate the point in the opposite direction of the row's rotation
+  const cosR = Math.cos(-rotationRadians);
+  const sinR = Math.sin(-rotationRadians);
+
+  const localX = translatedX * cosR - translatedY * sinR;
+  const localY = translatedX * sinR + translatedY * cosR;
+
+  // Check if the transformed point is within the bounding rectangle
+  return (
+    localX >= -seatRadius &&
+    localX <= rectWidth - seatRadius &&
+    localY >= -seatRadius &&
+    localY <= rectHeight - seatRadius
+  );
+}
+
 function roundedRectangleEditor(shape, mouseX, mouseY) {
   if (isPointInRotatedRect(mouseX, mouseY, shape)) {
     selectedShape = shape;
@@ -189,5 +221,16 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
 
     canvas.addEventListener("mousemove", dragShape);
     canvas.addEventListener("mouseup", stopDragShape);
+  }
+}
+
+function rowEditor(shape, mouseX, mouseY) {
+  console.log(shape, mouseX, mouseY);
+  if (isPointInRotatedRow(mouseX, mouseY, shape)) {
+    console.log("true");
+    selectedShape = shape;
+
+    setEditorContent(`
+    `);
   }
 }

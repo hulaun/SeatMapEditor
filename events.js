@@ -182,42 +182,38 @@ removeButton.addEventListener("click", (event) => {
 //-------Area Events---------
 
 function removeAreaEventListeners() {
-  canvas.removeEventListener("mousedown", startStageDrawing);
-  canvas.removeEventListener("mousedown", startAreaDrawing);
-  canvas.removeEventListener("mousemove", drawAreaPreview);
-  canvas.removeEventListener("mouseup", finishAreaDrawing);
-  canvas.removeEventListener("mousedown", selectShape);
-  canvas.removeEventListener("dblclick", zoomInArea);
-  canvas.removeEventListener("mousemove", dragShape);
-  canvas.removeEventListener("mouseup", stopDragShape);
-  canvas.removeEventListener("mousedown", startPanning);
-  canvas.removeEventListener("mousemove", panCanvas);
-  canvas.removeEventListener("mouseup", stopPanning);
+  canvas.removeEventListener("mousedown", startSeatDrawing);
+  canvas.removeEventListener("mousedown", selectAreaShape);
 }
 
 function areaReset() {
-  selectedShape = null;
   removeAreaEventListeners();
-  drawAll();
+  selectedShape = null;
+  selectedType = "";
+  zoomedArea.draw(ctx, true);
 }
 
 backButton.addEventListener("click", () => {
+  areaReset();
   zoomedArea = null;
   shapes.forEach((s) => (s.isHidden = false));
+  currentStateIndex--;
   restoreCanvasState(currentStateIndex);
   mainMenuBar.style.display = "flex";
   areaMenuBar.style.display = "none";
 });
 
 insertSeats.addEventListener("click", (event) => {
+  areaReset();
   insertSeatDropDown.classList.toggle("show");
   selectedType = "row";
-  canvas.addEventListener("mousedown", startDrawing);
+  canvas.addEventListener("mousedown", startSeatDrawing);
 });
 
 insertGridSeats.addEventListener("click", () => {
+  areaReset();
   selectedType = "grid";
-  canvas.addEventListener("mousedown", startDrawing);
+  canvas.addEventListener("mousedown", startSeatDrawing);
 });
 
 insertCircleTable.addEventListener("click", () => {
@@ -226,7 +222,8 @@ insertCircleTable.addEventListener("click", () => {
 });
 
 selectSeatsMode.addEventListener("click", () => {
-  canvas.addEventListener("mousedown", selectShape);
+  areaReset();
+  canvas.addEventListener("mousedown", selectAreaShape);
 });
 
 seatUndoButton.addEventListener("click", () => {

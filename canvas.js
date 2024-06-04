@@ -5,7 +5,9 @@ const ctx = canvas.getContext("2d");
 
 let isDrawing = false;
 let selectedType = "";
+let clickCount = 0;
 let startX, startY;
+let secondX, secondY;
 let translateX = 0;
 let translateY = 0;
 const touchpadScalingFactor = 1.5;
@@ -26,6 +28,11 @@ function drawAll() {
         ctx.fillStyle = "lightgrey";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         zoomedArea.draw(ctx, true);
+        if (selectedShape != null) {
+          if (selectedShape.type === "Row") {
+            selectedShape.drawBoundingRectangle(ctx);
+          }
+        }
       } else if (shape === selectedShape) {
         ctx.strokeStyle = "red";
         shape.draw(ctx);
@@ -58,13 +65,35 @@ function saveCanvasState() {
   canvasStates.push(state);
   currentStateIndex++;
 }
+function updateCurrentCanvasState() {
+  if (currentStateIndex < 0) return; // Ensure there is a current state to update
+
+  // Clone the current state to avoid mutation
+  const currentState = { ...canvasStates[currentStateIndex - 1] };
+  const updatedShapes = [...currentState.shapes];
+
+  for (let i = 0; i < updatedShapes.length; i++) {
+    if (updatedShapes[i].name === zoomedArea.name) {
+      // Assuming each shape has a unique `id`
+      updatedShapes[i].shapes = zoomedArea.shapes;
+      break;
+    }
+  }
+
+  // Create the updated state
+  const updatedState = {
+    ...currentState,
+    shapes: updatedShapes,
+  };
+  // Replace the current state in the canvasStates array
+  canvasStates[currentStateIndex - 1] = updatedState;
+}
 
 function restoreCanvasState(index) {
   const state = canvasStates[index];
 
   // Restore the shapes list
   shapes = state.shapes.map((shapeData) => {
-    console.log(shapeData.type);
     switch (shapeData.type) {
       case "RoundedBorderRectangle":
         return RoundedBorderRectangle.deserialize(shapeData);

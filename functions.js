@@ -275,12 +275,27 @@ function zoomInOnShape(shape) {
 //---------Area functions----------
 
 //Seats
-function startDrawing(event) {
-  isDrawing = true;
-  startX = event.clientX;
-  startY = event.clientY;
-  canvas.addEventListener("mousemove", drawSeatPreview);
-  canvas.addEventListener("mouseup", finishSeatDrawing);
+function startSeatDrawing(event) {
+  if (selectedType === "grid") {
+    if (clickCount === 0) {
+      isDrawing = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      clickCount++;
+    } else if (clickCount === 1) {
+      secondX = event.clientX;
+      secondY = event.clientY;
+      clickCount++;
+      canvas.addEventListener("mousemove", drawSeatPreview);
+      canvas.addEventListener("mouseup", finishSeatDrawing);
+    }
+  } else if (selectedType === "row") {
+    isDrawing = true;
+    startX = event.clientX;
+    startY = event.clientY;
+    canvas.addEventListener("mousemove", drawSeatPreview);
+    canvas.addEventListener("mouseup", finishSeatDrawing);
+  }
 }
 
 function drawSeatPreview(event) {
@@ -298,10 +313,39 @@ function drawSeatPreview(event) {
 }
 
 function drawGridSeatPreview(x, y) {
-  const radius = Math.sqrt(Math.pow(startX - x) + Math.pow(startY - y));
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, 2 * Math.PI);
-  ctx.stroke();
+  const angle = Math.atan2(secondY - startY, secondX - startX);
+
+  // Calculate the orthogonal distance from the current point to the line
+  const dx = secondX - startX;
+  const dy = secondY - startY;
+  const length = Math.sqrt(dx * dx + dy * dy);
+  const normalX = -dy / length;
+  const normalY = dx / length;
+
+  const distance = Math.abs((x - startX) * normalX + (y - startY) * normalY);
+  const totalWidth = Math.sqrt(
+    Math.pow(secondX - startX, 2) + Math.pow(secondY - startY, 2)
+  );
+  const numberOfSeatsInRow = Math.floor(
+    totalWidth / (2 * seatRadius + seatSpacing)
+  );
+  const numberOfRows = Math.floor(distance / (2 * seatRadius + seatSpacing));
+
+  drawAll();
+
+  for (let row = 0; row <= numberOfRows; row++) {
+    for (let i = 0; i <= numberOfSeatsInRow; i++) {
+      const offsetX = row * (2 * seatRadius + seatSpacing) * normalX;
+      const offsetY = row * (2 * seatRadius + seatSpacing) * normalY;
+      const seatX =
+        startX + i * (2 * seatRadius + seatSpacing) * Math.cos(angle) + offsetX;
+      const seatY =
+        startY + i * (2 * seatRadius + seatSpacing) * Math.sin(angle) + offsetY;
+      ctx.beginPath();
+      ctx.arc(seatX, seatY, seatRadius, 0, 2 * Math.PI);
+      ctx.stroke();
+    }
+  }
 }
 
 function drawRowSeatPreview(x, y) {
@@ -329,6 +373,7 @@ function drawRowSeatPreview(x, y) {
 function finishSeatDrawing(event) {
   if (!isDrawing) return;
   isDrawing = false;
+  clickCount = 0;
 
   canvas.removeEventListener("mousemove", drawSeatPreview);
   canvas.removeEventListener("mouseup", finishSeatDrawing);
@@ -344,7 +389,6 @@ function finishSeatDrawing(event) {
     Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2)
   );
   const numberOfSeats = Math.floor(totalWidth / (2 * seatRadius + seatSpacing));
-  console.log("1");
   if (selectedType === "row") {
     zoomedArea.createSeatsForRow({
       name: "Row",
@@ -355,7 +399,61 @@ function finishSeatDrawing(event) {
       seatSpacing,
       rotation: angle,
     });
-  }
+  } else if (selectedType === "grid") {
+    const dx = secondX - startX;
+    const dy = secondY - startY;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const normalX = -dy / length;
+    const normalY = dx / length;
+    const distance = Math.abs(
+      (endX - startX) * normalX + (endY - startY) * normalY
+    );
+    const numberOfRows = Math.floor(distance / (2 * seatRadius + seatSpacing));
+    for (let row = 0; row <= numberOfRows; row++) {
+      const offsetX = row * (2 * seatRadius + seatSpacing) * normalX;
+      const offsetY = row * (2 * seatRadius + seatSpacing) * normalY;
+      const rowStartX = startX + offsetX;
+      const rowStartY = startY + offsetY;
 
+      zoomedArea.createSeatsForRow({
+        name: `Row ${row + 1}`,
+        startX: rowStartX,
+        startY: rowStartY,
+        seatRadius,
+        numberOfSeats: numberOfSeats,
+        seatSpacing,
+        rotation: angle,
+      });
+    }
+  }
+  updateCurrentCanvasState();
+  drawAll();
+}
+
+function selectAreaShape(event) {
+  const mouseX = event.clientX - translateX;
+  const mouseY = event.clientY - translateY;
+
+  selectedShape = null;
+  for (let i = zoomedArea.shapes.length - 1; i >= 0; i--) {
+    console.log(zoomedArea.shapes.length);
+    if (zoomedArea.shapes[i] instanceof Row) {
+      rowEditor(zoomedArea.shapes[i], mouseX, mouseY);
+      if (selectedShape == null) {
+        continue;
+      } else {
+        break;
+      }
+    } else if (zoomedArea.shapes[i] instanceof Text) {
+      roundedRectangleEditor(zoomedArea.shapes[i], mouseX, mouseY);
+      if (selectedShape == null) {
+        continue;
+      } else {
+        break;
+      }
+    } else {
+      // Todo
+    }
+  }
   drawAll();
 }

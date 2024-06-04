@@ -1,11 +1,12 @@
 class Shape {
   constructor() {
     this.isHidden = false;
+    this.type = "Shape";
   }
 
   serialize() {
     return {
-      type: "Shape",
+      type: this.type,
       isHidden: this.isHidden,
     };
   }
@@ -36,6 +37,7 @@ class RoundedBorderRectangle extends Shape {
     rotation = 0,
   }) {
     super();
+    this.type = "RoundedBorderRectangle";
     this.x = x;
     this.y = y;
     this.width = width;
@@ -55,7 +57,7 @@ class RoundedBorderRectangle extends Shape {
   serialize() {
     return {
       ...super.serialize(),
-      type: "RoundedBorderRectangle",
+      type: this.type,
       x: this.x,
       y: this.y,
       width: this.width,
@@ -135,13 +137,14 @@ class Stage extends RoundedBorderRectangle {
       rotation: rotation,
       color: color,
     });
+    this.type = "Stage";
     this.name = name;
   }
 
   serialize() {
     return {
       ...super.serialize(),
-      type: "Stage",
+      type: this.type,
       name: this.name,
     };
   }
@@ -175,6 +178,7 @@ class Area extends RoundedBorderRectangle {
     borderRadius = 0,
     color = "white",
     rotation = 0,
+    shapes = null,
   }) {
     super({
       x,
@@ -189,23 +193,25 @@ class Area extends RoundedBorderRectangle {
       color,
       rotation,
     });
+    this.type = "Area";
     this.name = name;
-    this.shapes = [];
+    this.shapes = shapes ?? [];
   }
 
   serialize() {
     return {
       ...super.serialize(),
-      type: "Area",
+      type: this.type,
       name: this.name,
       shapes: this.shapes.map((shape) => shape.serialize()),
     };
   }
 
   static deserialize(data) {
-    console.log(data);
     const area = new Area(data);
+    console.log(area);
     area.shapes = data.shapes.map((shapeData) => {
+      console.log(shapeData);
       switch (shapeData.type) {
         case "Row":
           return Row.deserialize(shapeData);
@@ -231,7 +237,6 @@ class Area extends RoundedBorderRectangle {
     ctx.fillStyle = "lightgrey";
     ctx.fillText(this.name, this.x + this.width / 2, this.y + this.height / 2);
     if (isZoomed) {
-      console.log(this.shapes);
       this.shapes.forEach((shape) => {
         shape.draw(ctx);
       });
@@ -291,28 +296,6 @@ class Area extends RoundedBorderRectangle {
     }
     this.addShape(row);
   }
-
-  createSeatsForAllAvailableSpace({
-    seatRadius,
-    rowSpacing = 20,
-    seatSpacing = 10,
-  }) {
-    const rows = Math.floor(this.height / (seatRadius * 2 + rowSpacing));
-    const seatsPerRow = Math.floor(this.width / (seatRadius * 2 + seatSpacing));
-
-    for (let rowIndex = 0; rowIndex < rows; rowIndex++) {
-      const startY =
-        this.y + seatRadius * 2 + rowIndex * (seatRadius * 2 + rowSpacing);
-      this.createSeatsForRow({
-        name: `A${rowIndex + 1}`,
-        startX: this.x + seatRadius * 2,
-        startY: startY,
-        seatRadius: seatRadius,
-        numberOfSeats: seatsPerRow,
-        seatSpacing: seatSpacing,
-      });
-    }
-  }
 }
 class Text {
   constructor({
@@ -329,11 +312,12 @@ class Text {
     this.fontSize = fontSize;
     this.fontFamily = fontFamily;
     this.color = color;
+    this.type = "Text";
   }
 
   serialize() {
     return {
-      type: "Text",
+      type: this.type,
       content: this.content,
       x: this.x,
       y: this.y,
@@ -371,10 +355,12 @@ class Row {
     this.seatSpacing = seatSpacing;
     this.seats = [];
     this.rotation = rotation;
+    this.type = "Row";
   }
 
   serialize() {
     return {
+      type: this.type,
       name: this.name,
       startX: this.startX,
       startY: this.startY,
@@ -421,6 +407,28 @@ class Row {
 
     ctx.restore();
   }
+
+  drawBoundingRectangle(ctx) {
+    ctx.save();
+    ctx.translate(this.startX, this.startY);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.translate(-this.startX, -this.startY);
+
+    const totalWidth =
+      (this.seats.length - 1) * (this.seatRadius * 2 + this.seatSpacing);
+    const rectWidth = totalWidth + this.seatRadius * 2;
+    const rectHeight = this.seatRadius * 2;
+
+    ctx.strokeStyle = "red";
+    ctx.strokeRect(
+      this.startX - this.seatRadius - 2,
+      this.startY - this.seatRadius - 2,
+      rectWidth + 4,
+      rectHeight + 4
+    );
+
+    ctx.restore();
+  }
 }
 
 class Seat {
@@ -431,11 +439,12 @@ class Seat {
     this.y = y;
     this.radius = radius;
     this.isBuyed = isBuyed;
+    this.type = "Seat";
   }
 
   serialize() {
     return {
-      type: "Seat",
+      type: this.type,
       rowName: this.rowName,
       number: this.number,
       x: this.x,
