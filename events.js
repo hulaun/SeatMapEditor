@@ -24,7 +24,7 @@ const selectSeatsMode = document.getElementById("selectSeatsMode");
 const seatUndoButton = document.getElementById("seatUndoButton");
 const seatRedoButton = document.getElementById("seatRedoButton");
 const seatRemoveButton = document.getElementById("seatRemoveButton");
-const insertText = document.getElementById("insertText");
+const insertTextButton = document.getElementById("insertText");
 
 const editorTitle = document.getElementById("editorTitle");
 const editorContent = document.getElementById("editorContent");
@@ -101,14 +101,13 @@ selectButton.addEventListener("click", () => {
   mainMapReset();
   canvas.addEventListener("dblclick", zoomInArea);
   canvas.addEventListener("mousedown", selectShape);
-  setEditorTitle("<h4>Select and Edit Options</h4>");
-  setEditorContent("");
 });
 
 undoButton.addEventListener("click", () => {
   if (currentStateIndex > 0) {
     currentStateIndex--;
     restoreCanvasState(currentStateIndex);
+    mainEditor();
   }
 });
 
@@ -116,11 +115,11 @@ redoButton.addEventListener("click", () => {
   if (currentStateIndex < canvasStates.length - 1) {
     currentStateIndex++;
     restoreCanvasState(currentStateIndex);
+    mainEditor();
   }
 });
 
 saveButton.addEventListener("click", () => {
-  // Serialize canvas data into JSON format
   const canvasData = {
     shapes: shapes.map((shape) => ({
       data: shape.serialize(),
@@ -130,7 +129,6 @@ saveButton.addEventListener("click", () => {
 
   const blob = new Blob([json], { type: "application/json" });
 
-  // Create a link element to trigger download
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "canvas_data.json";
@@ -148,10 +146,8 @@ loadButton.addEventListener("change", (event) => {
     const json = e.target.result;
     const canvasData = JSON.parse(json);
 
-    // Clear current canvas state
     shapes = [];
 
-    // Deserialize shapes and add them to canvas
     canvasData.shapes.forEach((shapeData) => {
       const ShapeClass = window[shapeData.data.type];
       if (ShapeClass) {
@@ -161,7 +157,6 @@ loadButton.addEventListener("change", (event) => {
       }
     });
 
-    // Redraw canvas with loaded shapes
     drawAll();
   };
 
@@ -176,7 +171,8 @@ panningButton.addEventListener("click", () => {
 });
 
 removeButton.addEventListener("click", (event) => {
-  removeShape(event);
+  removeShape();
+  mainEditor();
 });
 
 //-------Area Events---------
@@ -184,6 +180,21 @@ removeButton.addEventListener("click", (event) => {
 function removeAreaEventListeners() {
   canvas.removeEventListener("mousedown", startSeatDrawing);
   canvas.removeEventListener("mousedown", selectAreaShape);
+  canvas.removeEventListener("mousemove", dragShape);
+  canvas.removeEventListener("mouseup", stopDragShape);
+  canvas.removeEventListener("mousedown", startPanning);
+  canvas.removeEventListener("mousedown", insertText);
+}
+
+function preventDefault(event) {
+  event.preventDefault();
+}
+function preventPanning() {
+  console.log("why");
+  canvas.addEventListener("mousedown", preventDefault);
+  canvas.addEventListener("mousemove", preventDefault);
+  canvas.addEventListener("mouseup", preventDefault);
+  canvas.addEventListener("wheel", preventDefault);
 }
 
 function areaReset() {
@@ -195,31 +206,33 @@ function areaReset() {
 
 backButton.addEventListener("click", () => {
   areaReset();
+  updateCurrentCanvasState();
   zoomedArea = null;
   shapes.forEach((s) => (s.isHidden = false));
   currentStateIndex--;
   restoreCanvasState(currentStateIndex);
   mainMenuBar.style.display = "flex";
   areaMenuBar.style.display = "none";
+  mainEditor();
 });
 
 insertSeats.addEventListener("click", (event) => {
   areaReset();
   insertSeatDropDown.classList.toggle("show");
   selectedType = "row";
-  canvas.addEventListener("mousedown", startSeatDrawing);
+  canvas.addEventListener("click", startSeatDrawing);
 });
 
 insertGridSeats.addEventListener("click", () => {
   areaReset();
   selectedType = "grid";
-  canvas.addEventListener("mousedown", startSeatDrawing);
+  canvas.addEventListener("click", startSeatDrawing);
 });
 
-insertCircleTable.addEventListener("click", () => {
-  insertTableSeatDropDown.classList.toggle("show");
-  // canvas.addEventListener("mousedown", startAreaDrawing);
-});
+// insertCircleTable.addEventListener("click", () => {
+// insertTableSeatDropDown.classList.toggle("show");
+// canvas.addEventListener("mousedown", startAreaDrawing);
+// });
 
 selectSeatsMode.addEventListener("click", () => {
   areaReset();
@@ -227,15 +240,28 @@ selectSeatsMode.addEventListener("click", () => {
 });
 
 seatUndoButton.addEventListener("click", () => {
-  undoAction();
+  if (currentAreaStateIndex > 0) {
+    currentAreaStateIndex--;
+    restoreAreaCanvasState(currentAreaStateIndex);
+    mainEditor();
+  }
 });
 
 seatRedoButton.addEventListener("click", () => {
-  redoAction();
+  if (currentAreaStateIndex < canvasAreaStates.length - 1) {
+    currentAreaStateIndex++;
+    restoreAreaCanvasState(currentAreaStateIndex);
+    mainEditor();
+  }
 });
 
 seatRemoveButton.addEventListener("click", () => {
-  removeSelectedShape();
+  removeAreaShape();
+  mainEditor();
 });
 
-insertText.addEventListener("click", () => {});
+insertTextButton.addEventListener("click", () => {
+  areaReset();
+  insertTextMode = true;
+  canvas.addEventListener("mousedown", insertText);
+});

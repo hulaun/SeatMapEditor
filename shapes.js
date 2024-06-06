@@ -17,7 +17,7 @@ class Shape {
     return shape;
   }
 
-  draw(ctx) {
+  draw() {
     return "shape";
   }
 }
@@ -76,7 +76,27 @@ class RoundedBorderRectangle extends Shape {
     return new RoundedBorderRectangle(data);
   }
 
-  draw(ctx) {
+  isPointInside(x, y) {
+    const translatedX = x - (this.x + this.width / 2);
+    const translatedY = y - (this.y + this.height / 2);
+
+    const rotationRadians = (this.rotation * Math.PI) / 180;
+
+    const cosR = Math.cos(-rotationRadians);
+    const sinR = Math.sin(-rotationRadians);
+
+    const localX = translatedX * cosR - translatedY * sinR + this.width / 2;
+    const localY = translatedX * sinR + translatedY * cosR + this.height / 2;
+
+    return (
+      localX >= 0 &&
+      localX <= this.width &&
+      localY >= 0 &&
+      localY <= this.height
+    );
+  }
+
+  draw() {
     ctx.save();
     ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
     ctx.rotate((this.rotation * Math.PI) / 180);
@@ -122,7 +142,7 @@ class Stage extends RoundedBorderRectangle {
     bottomLeftBorderRadius = 0,
     bottomRightBorderRadius = 0,
     rotation = 0,
-    color = "lightgrey",
+    color = "#EFEFEF",
   }) {
     super({
       x,
@@ -153,8 +173,8 @@ class Stage extends RoundedBorderRectangle {
     return new Stage(data);
   }
 
-  draw(ctx) {
-    super.draw(ctx);
+  draw() {
+    super.draw();
     ctx.font = `${this.width / 12}px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
@@ -166,7 +186,7 @@ class Stage extends RoundedBorderRectangle {
 
 class Area extends RoundedBorderRectangle {
   constructor({
-    name,
+    name = "Name",
     x,
     y,
     width,
@@ -217,7 +237,6 @@ class Area extends RoundedBorderRectangle {
           return Row.deserialize(shapeData);
         case "Text":
           return Text.deserialize(shapeData);
-        // Add more cases for other shape types if needed
         default:
           throw new Error(`Unknown shape type: ${shapeData.type}`);
       }
@@ -229,8 +248,8 @@ class Area extends RoundedBorderRectangle {
     this.shapes.push(shape);
   }
 
-  draw(ctx, isZoomed = false) {
-    super.draw(ctx);
+  draw(isZoomed = false) {
+    super.draw();
     ctx.font = `${this.width / 12}px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
@@ -238,13 +257,12 @@ class Area extends RoundedBorderRectangle {
     ctx.fillText(this.name, this.x + this.width / 2, this.y + this.height / 2);
     if (isZoomed) {
       this.shapes.forEach((shape) => {
-        shape.draw(ctx);
+        shape.draw();
       });
     }
-    return "stage";
+    return "area";
   }
 
-  // Add Text to the shapes
   addText({ content, x, y, fontSize, fontFamily, color }) {
     const text = new Text({ content, x, y, fontSize, fontFamily, color });
     this.addShape(text);
@@ -299,12 +317,12 @@ class Area extends RoundedBorderRectangle {
 }
 class Text {
   constructor({
-    content,
+    content = "New Text",
     x,
     y,
-    fontSize,
+    fontSize = 16,
     fontFamily = "Arial",
-    color = "black",
+    color = "#000000",
   }) {
     this.content = content;
     this.x = x;
@@ -331,12 +349,40 @@ class Text {
     return new Text(data);
   }
 
-  draw(ctx) {
+  draw() {
     ctx.font = `${this.fontSize}px ${this.fontFamily}`;
     ctx.fillStyle = this.color;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
     ctx.fillText(this.content, this.x, this.y);
+  }
+
+  isPointInside(x, y) {
+    ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+    const textWidth = ctx.measureText(this.content).width;
+    const textHeight = this.fontSize;
+    return (
+      x >= this.x - textWidth / 2 &&
+      x <= this.x + textWidth / 2 &&
+      y >= this.y - textHeight / 2 &&
+      y <= this.y + textHeight / 2
+    );
+  }
+
+  drawBoundingRectangle() {
+    const textWidth = ctx.measureText(this.content).width;
+    const textHeight = this.fontSize; // Approximation
+
+    ctx.save();
+    ctx.strokeStyle = "black";
+    ctx.setLineDash([5, 3]);
+    ctx.strokeRect(
+      this.x - textWidth / 2 - 2,
+      this.y - textHeight / 2 - 4,
+      textWidth + 4,
+      textHeight + 4
+    );
+    ctx.restore();
   }
 }
 class Row {
@@ -377,6 +423,32 @@ class Row {
     return row;
   }
 
+  isPointInside(x, y) {
+    const totalWidth =
+      (this.seats.length - 1) * (this.seatRadius * 2 + this.seatSpacing) +
+      this.seatRadius * 2;
+    const rectWidth = totalWidth;
+    const rectHeight = this.seatRadius * 2;
+
+    const translatedX = x - this.startX;
+    const translatedY = y - this.startY;
+
+    const rotationRadians = (this.rotation * Math.PI) / 180;
+
+    const cosR = Math.cos(-rotationRadians);
+    const sinR = Math.sin(-rotationRadians);
+
+    const localX = translatedX * cosR - translatedY * sinR;
+    const localY = translatedX * sinR + translatedY * cosR;
+
+    return (
+      localX >= -this.seatRadius &&
+      localX <= rectWidth - this.seatRadius &&
+      localY >= -this.seatRadius &&
+      localY <= rectHeight - this.seatRadius
+    );
+  }
+
   addSeat(seat) {
     this.seats.push(seat);
   }
@@ -397,18 +469,18 @@ class Row {
     this.addSeat(seat);
   }
 
-  draw(ctx) {
+  draw() {
     ctx.save();
     ctx.translate(this.startX, this.startY);
     ctx.rotate((this.rotation * Math.PI) / 180);
     ctx.translate(-this.startX, -this.startY);
 
-    this.seats.forEach((seat) => seat.draw(ctx));
+    this.seats.forEach((seat) => seat.draw());
 
     ctx.restore();
   }
 
-  drawBoundingRectangle(ctx) {
+  drawBoundingRectangle() {
     ctx.save();
     ctx.translate(this.startX, this.startY);
     ctx.rotate((this.rotation * Math.PI) / 180);
@@ -419,7 +491,8 @@ class Row {
     const rectWidth = totalWidth + this.seatRadius * 2;
     const rectHeight = this.seatRadius * 2;
 
-    ctx.strokeStyle = "red";
+    ctx.strokeStyle = "black";
+    ctx.setLineDash([5, 3]);
     ctx.strokeRect(
       this.startX - this.seatRadius - 2,
       this.startY - this.seatRadius - 2,
@@ -428,6 +501,38 @@ class Row {
     );
 
     ctx.restore();
+  }
+
+  setSeatRadius(newRadius) {
+    this.seatRadius = newRadius;
+    this.updateSeats();
+  }
+
+  setSeatSpacing(newSpacing) {
+    this.seatSpacing = newSpacing;
+    this.updateSeats();
+  }
+
+  setRowName(newName) {
+    this.name = newName;
+    this.updateSeats();
+  }
+
+  updateSeats() {
+    this.seats.forEach((seat, index) => {
+      seat.rowName = this.name;
+      seat.x = this.startX + index * (this.seatRadius * 2 + this.seatSpacing);
+      seat.radius = this.seatRadius;
+    });
+  }
+
+  setSeatsCoor(x, y) {
+    this.startX = x;
+    this.startY = y;
+    this.seats.forEach((seat, index) => {
+      seat.x = x + index * (this.seatRadius * 2 + this.seatSpacing);
+      seat.y = y;
+    });
   }
 }
 
@@ -458,7 +563,7 @@ class Seat {
     return new Seat(data);
   }
 
-  draw(ctx) {
+  draw() {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
     ctx.strokeStyle = "black";

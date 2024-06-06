@@ -1,62 +1,53 @@
-function isPointInRotatedRect(x, y, rect) {
-  const { x: rx, y: ry, width: rw, height: rh, rotation } = rect;
-
-  // Translate point to rectangle's local coordinates
-  const translatedX = x - (rx + rw / 2);
-  const translatedY = y - (ry + rh / 2);
-
-  // Convert rotation to radians
-  const rotationRadians = (rotation * Math.PI) / 180;
-
-  // Rotate the point in the opposite direction of the rectangle's rotation
-  const cosR = Math.cos(-rotationRadians);
-  const sinR = Math.sin(-rotationRadians);
-
-  const localX = translatedX * cosR - translatedY * sinR + rw / 2;
-  const localY = translatedX * sinR + translatedY * cosR + rh / 2;
-
-  // Check if the transformed point is within the rectangle bounds
-  return localX >= 0 && localX <= rw && localY >= 0 && localY <= rh;
+function isSeatInsideArea(row, area) {
+  for (let i = 0; i < row.seats; i++) {
+    const seat = row.seats[i];
+    const seatRadius = seat.radius || 5;
+    return (
+      seat.x - seatRadius >= area.x &&
+      seat.x + seatRadius <= area.x + area.width &&
+      seat.y - seatRadius >= area.y &&
+      seat.y + seatRadius <= area.y + area.height
+    );
+  }
 }
 
-function isPointInRotatedRow(x, y, row) {
-  const { startX, startY, rotation, seatRadius, seatSpacing, seats } = row;
+function mainEditor() {
+  let areaListHtml = "";
+  console.log(shapes);
+  console.log(shapes.filter((shape) => shape.type === "Area"));
+  shapes
+    .filter((shape) => shape.type === "Area")
+    .forEach((area) => {
+      let seatCount = 0;
+      area.shapes
+        .filter((shape) => shape.type === "Row")
+        .forEach((row) => {
+          console.log(row.seats);
+          seatCount += row.seats.length;
+        });
+      areaListHtml += `
+        <div class="area-item" onclick="showAreaDetails('${area.id}')">
+          <span>${area.name}</span>
+          <span>${seatCount} seats</span>
+        </div>
+      `;
+    });
 
-  // Calculate the width and height of the bounding rectangle
-  const totalWidth =
-    (seats.length - 1) * (seatRadius * 2 + seatSpacing) + seatRadius * 2;
-  const rectWidth = totalWidth;
-  const rectHeight = seatRadius * 2;
-
-  // Translate point to row's local coordinates
-  const translatedX = x - startX;
-  const translatedY = y - startY;
-
-  // Convert rotation to radians
-  const rotationRadians = (rotation * Math.PI) / 180;
-
-  // Rotate the point in the opposite direction of the row's rotation
-  const cosR = Math.cos(-rotationRadians);
-  const sinR = Math.sin(-rotationRadians);
-
-  const localX = translatedX * cosR - translatedY * sinR;
-  const localY = translatedX * sinR + translatedY * cosR;
-
-  // Check if the transformed point is within the bounding rectangle
-  return (
-    localX >= -seatRadius &&
-    localX <= rectWidth - seatRadius &&
-    localY >= -seatRadius &&
-    localY <= rectHeight - seatRadius
-  );
+  setEditorTitle("<h4>Areas</h4>");
+  setEditorContent(`
+    <div class="area-list">
+      ${areaListHtml}
+    </div>
+  `);
 }
 
 function roundedRectangleEditor(shape, mouseX, mouseY) {
-  if (isPointInRotatedRect(mouseX, mouseY, shape)) {
+  if (shape.isPointInside(mouseX, mouseY)) {
     selectedShape = shape;
 
     offsetX = mouseX - shape.x;
     offsetY = mouseY - shape.y;
+    setEditorTitle("<h4>Select and Edit Options</h4>");
     setEditorContent(`
       <label for="areaName">Area Name:</label>
       <input type="text" id="areaName" value="${shape.name || ""}">
@@ -92,7 +83,7 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
       }" step="1" value="${shape.topLeftBorderRadius}">
       <br>
       <label for="rotation">Rotation (degrees):</label>
-      <input type="range" id="rotation" min="0" max="360" step="1" value="${
+      <input type="range" id="rotation" min="0" max="180" step="1" value="${
         shape.rotation
       }">
       <br>
@@ -224,13 +215,162 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
   }
 }
 
+function areaEditor() {
+  let areaListHtml = "";
+  console.log(shapes);
+  console.log(shapes.filter((shape) => shape.type === "Area"));
+
+  let seatCount = 0;
+  let rowCount = 0;
+  let errorMessages = [];
+  zoomedArea.shapes
+    .filter((shape) => shape.type === "Row")
+    .forEach((row) => {
+      rowCount++;
+      seatCount += row.seats.length;
+      // if (!isSeatInsideArea(row, zoomedArea)) {
+      //   errorMessages.push(`Seats in Row ${row.name} is outside the area.`);
+      // }
+    });
+  console.log(errorMessages);
+
+  areaListHtml += `
+    <div class="area-item" onclick="showAreaDetails('${zoomedArea.id}')">
+      <span>${rowCount} rows, ${seatCount} seats</span>
+      ${
+        errorMessages.length > 0
+          ? `<div class="error-messages">${errorMessages.join("<br>")}</div>`
+          : ""
+      }
+    </div>
+  `;
+
+  setEditorTitle(`<h4>${zoomedArea.name}</h4>`);
+  setEditorContent(`
+    <div class="area-list">
+      ${areaListHtml}
+    </div>
+  `);
+}
+
 function rowEditor(shape, mouseX, mouseY) {
-  console.log(shape, mouseX, mouseY);
-  if (isPointInRotatedRow(mouseX, mouseY, shape)) {
-    console.log("true");
+  if (shape.isPointInside(mouseX, mouseY)) {
     selectedShape = shape;
 
+    offsetX = mouseX - shape.startX;
+    offsetY = mouseY - shape.startY;
+    setEditorTitle("<h4>Select and Edit shape Options</h4>");
     setEditorContent(`
+      <label for="shapeName">shape Name:</label>
+      <input type="text" id="shapeName" value="${shape.name || ""}">
+      <br>
+      <label for="seatRadius">Seat Radius:</label>
+      <input type="range" id="seatRadius" min="1" max="50" step="1" value="${
+        shape.seatRadius || 10
+      }">
+      <br>
+      <label for="seatSpacing">Seat Spacing:</label>
+      <input type="range" id="seatSpacing" min="1" max="50" step="1" value="${
+        shape.seatSpacing || 10
+      }">
+      <br>
+      <label for="rotation">Rotation (degrees):</label>
+      <input type="range" id="rotation" min="0" max="360" step="1" value="${
+        shape.rotation || 0
+      }">
+      <br>
     `);
+
+    document.getElementById("shapeName").addEventListener("input", (e) => {
+      shape.setRowName(e.target.value);
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("seatRadius").addEventListener("input", (e) => {
+      shape.setSeatRadius(parseInt(e.target.value, 10));
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("seatSpacing").addEventListener("input", (e) => {
+      shape.setSeatSpacing(parseInt(e.target.value, 10));
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("rotation").addEventListener("input", (e) => {
+      shape.rotation = parseInt(e.target.value, 10);
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    canvas.addEventListener("dblclick", selectSeat);
+
+    canvas.addEventListener("mousemove", dragShape);
+    canvas.addEventListener("mouseup", stopDragShape);
+  }
+}
+
+function textEditor(shape, mouseX, mouseY) {
+  if (shape.isPointInside(mouseX, mouseY)) {
+    selectedShape = shape;
+    offsetX = mouseX - shape.x;
+    offsetY = mouseY - shape.y;
+
+    setEditorTitle("<h4>Edit Text Properties</h4>");
+    setEditorContent(`
+    <label for="textContent">Content:</label>
+    <input type="text" id="textContent" value="${shape.content || ""}">
+    <br>
+    <label for="fontSize">Font Size:</label>
+    <input type="range" id="fontSize" min="10" max="100" step="1" value="${
+      shape.fontSize || 30
+    }">
+    <br>
+    <label for="fontColor">Color:</label>
+    <input type="color" id="fontColor" value="${shape.color || "#000000"}">
+    <br>
+    <label for="fontFamily">Font Family:</label>
+    <select id="fontFamily">
+      <option value="Arial" ${
+        shape.fontFamily === "Arial" ? "selected" : ""
+      }>Arial</option>
+      <option value="Verdana" ${
+        shape.fontFamily === "Verdana" ? "selected" : ""
+      }>Verdana</option>
+      <option value="Times New Roman" ${
+        shape.fontFamily === "Times New Roman" ? "selected" : ""
+      }>Times New Roman</option>
+    </select>
+    <br>
+  `);
+
+    document.getElementById("textContent").addEventListener("input", (e) => {
+      shape.content = e.target.value;
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("fontSize").addEventListener("input", (e) => {
+      shape.fontSize = parseInt(e.target.value, 10);
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("fontColor").addEventListener("input", (e) => {
+      shape.color = e.target.value;
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("fontFamily").addEventListener("change", (e) => {
+      shape.fontFamily = e.target.value;
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    canvas.addEventListener("mousemove", dragShape);
+    canvas.addEventListener("mouseup", stopDragShape);
   }
 }

@@ -3,8 +3,8 @@
 
 
  html {
-  line-height: 1.15; /* 1 */
-  -webkit-text-size-adjust: 100%; /* 2 */
+  line-height: 1.15; 
+  -webkit-text-size-adjust: 100%; 
 }
 
 
@@ -13,7 +13,7 @@ body::-webkit-scrollbar {
 }
 
 body {
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none; 
   margin: 0;
 }
 

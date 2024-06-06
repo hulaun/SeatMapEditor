@@ -4,14 +4,13 @@ class FirstTemplate {
     this.y = y;
     this.width = width;
     this.height = height;
-    this.getShapes(ctx);
+    this.getShapes();
   }
 
   shapes = [];
   stage;
   area;
   getStage() {
-    // Assign the stage to a new RoundedBorderRectangle
     this.stage = new Stage({
       name: "Stage",
       x: this.x + this.width / 3.2,
@@ -21,7 +20,6 @@ class FirstTemplate {
     });
   }
   getArea() {
-    // Assign the Area to a new RoundedBorderRectangle
     this.area = new Area({
       name: "A1",
       x: this.x,
