@@ -190,7 +190,6 @@ function preventDefault(event) {
   event.preventDefault();
 }
 function preventPanning() {
-  console.log("why");
   canvas.addEventListener("mousedown", preventDefault);
   canvas.addEventListener("mousemove", preventDefault);
   canvas.addEventListener("mouseup", preventDefault);
@@ -207,6 +206,7 @@ function areaReset() {
 backButton.addEventListener("click", () => {
   areaReset();
   updateCurrentCanvasState();
+  canvasAreaStates = [];
   zoomedArea = null;
   shapes.forEach((s) => (s.isHidden = false));
   currentStateIndex--;

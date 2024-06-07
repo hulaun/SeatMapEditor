@@ -139,7 +139,6 @@ function selectShape(event) {
 }
 
 function dragShape(event) {
-  console.log(selectedShape);
   if (selectedShape) {
     if (selectedShape.type === "Row") {
       const mouseX = event.clientX;
@@ -153,8 +152,6 @@ function dragShape(event) {
     } else {
       const mouseX = event.clientX - translateX;
       const mouseY = event.clientY - translateY;
-      selectedShape.x = mouseX - offsetX;
-      selectedShape.y = mouseY - offsetY;
     }
     drawAll();
   }
@@ -196,7 +193,6 @@ function panCanvas(e) {
   translateY += deltaY;
   ctx.translate(deltaX, deltaY);
   drawAll();
-  console.log(e.clientX, e.clientY);
 }
 
 function stopPanning() {
@@ -244,8 +240,6 @@ function zoomInArea(event) {
 
 function zoomInOnShape(shape) {
   saveCanvasState();
-  console.log(canvas.height);
-  console.log(canvas.width);
   shapes.forEach((s) => (s.isHidden = s !== shape));
 
   let zoomedWidth, zoomedHeight;
@@ -357,9 +351,6 @@ function drawGridSeatPreview(x, y) {
 }
 
 function drawRowSeatPreview(x, y) {
-  const seatRadius = 10;
-  const seatSpacing = 10;
-
   const angle = Math.atan2(y - startY, x - startX);
 
   const totalWidth = Math.sqrt(
@@ -458,7 +449,6 @@ function selectAreaShape(event) {
 
   selectedShape = null;
   for (let i = zoomedArea.shapes.length - 1; i >= 0; i--) {
-    console.log(zoomedArea.shapes);
     if (zoomedArea.shapes[i] instanceof Row) {
       rowEditor(zoomedArea.shapes[i], mouseX, mouseY);
       if (selectedShape == null) {

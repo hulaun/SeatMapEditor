@@ -13,8 +13,6 @@ function isSeatInsideArea(row, area) {
 
 function mainEditor() {
   let areaListHtml = "";
-  console.log(shapes);
-  console.log(shapes.filter((shape) => shape.type === "Area"));
   shapes
     .filter((shape) => shape.type === "Area")
     .forEach((area) => {
@@ -22,7 +20,6 @@ function mainEditor() {
       area.shapes
         .filter((shape) => shape.type === "Row")
         .forEach((row) => {
-          console.log(row.seats);
           seatCount += row.seats.length;
         });
       areaListHtml += `
@@ -47,7 +44,7 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
 
     offsetX = mouseX - shape.x;
     offsetY = mouseY - shape.y;
-    setEditorTitle("<h4>Select and Edit Options</h4>");
+    setEditorTitle(`<h4>${selectedShape}</h4>`);
     setEditorContent(`
       <label for="areaName">Area Name:</label>
       <input type="text" id="areaName" value="${shape.name || ""}">
@@ -55,16 +52,6 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
       <label for="areaColor">Area Color:</label>
       <input type="color" id="areaColor" value="${
         shape.color == "white" ? "#ffffff" : shape.color || "#ffffff"
-      }">
-      <br>
-      <label for="positionX">Position X:</label>
-      <input type="range" id="positionX" min="0" max="1000" step="1" value="${
-        shape.x
-      }">
-      <br>
-      <label for="positionY">Position Y:</label>
-      <input type="range" id="positionY" min="0" max="1000" step="1" value="${
-        shape.y
       }">
       <br>
       <label for="curveWidth">Width:</label>
@@ -137,18 +124,6 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
       drawAll();
     });
 
-    document.getElementById("positionX").addEventListener("input", (e) => {
-      shape.x = parseInt(e.target.value, 10);
-      saveCanvasState();
-      drawAll();
-    });
-
-    document.getElementById("positionY").addEventListener("input", (e) => {
-      shape.y = parseInt(e.target.value, 10);
-      saveCanvasState();
-      drawAll();
-    });
-
     document.getElementById("curveWidth").addEventListener("input", (e) => {
       shape.width = parseInt(e.target.value, 10);
       saveCanvasState();
@@ -205,7 +180,12 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
       });
 
     document.getElementById("rotation").addEventListener("input", (e) => {
-      shape.rotation = parseInt(e.target.value, 10);
+      if (shape.type === "Area") {
+        selectedShape.setShapesRotation(parseInt(e.target.value, 10));
+        // shape.rotation = parseInt(e.target.value, 10);
+      } else {
+        shape.rotation = parseInt(e.target.value, 10);
+      }
       saveCanvasState();
       drawAll();
     });
@@ -217,8 +197,6 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
 
 function areaEditor() {
   let areaListHtml = "";
-  console.log(shapes);
-  console.log(shapes.filter((shape) => shape.type === "Area"));
 
   let seatCount = 0;
   let rowCount = 0;
@@ -232,7 +210,6 @@ function areaEditor() {
       //   errorMessages.push(`Seats in Row ${row.name} is outside the area.`);
       // }
     });
-  console.log(errorMessages);
 
   areaListHtml += `
     <div class="area-item" onclick="showAreaDetails('${zoomedArea.id}')">

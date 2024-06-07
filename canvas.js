@@ -78,11 +78,9 @@ function updateCurrentCanvasState() {
   if (currentStateIndex < 0) return;
 
   const currentState = { ...canvasStates[currentStateIndex - 1] };
-  console.log(canvasStates[currentStateIndex - 1]);
   const updatedShapes = [...currentState.shapes];
 
   for (let i = 0; i < updatedShapes.length; i++) {
-    console.log(updatedShapes[i], zoomedArea);
     if (updatedShapes[i].name === zoomedArea.name) {
       updatedShapes[i].shapes = zoomedArea.shapes;
       break;
