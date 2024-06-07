@@ -180,17 +180,8 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
       });
 
     document.getElementById("rotation").addEventListener("input", (e) => {
-<<<<<<< HEAD
       shape.rotation = parseInt(e.target.value, 10);
       shape.updateChildren();
-=======
-      if (shape.type === "Area") {
-        selectedShape.setShapesRotation(parseInt(e.target.value, 10));
-        // shape.rotation = parseInt(e.target.value, 10);
-      } else {
-        shape.rotation = parseInt(e.target.value, 10);
-      }
->>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
       saveCanvasState();
       drawAll();
     });
