@@ -216,6 +216,7 @@ function areaReset() {
 backButton.addEventListener("click", () => {
   areaReset();
   updateCurrentCanvasState();
+  canvasAreaStates = [];
   zoomedArea = null;
   shapes.forEach((s) => (s.isHidden = false));
   currentStateIndex--;

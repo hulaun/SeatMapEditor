@@ -152,8 +152,6 @@ function dragShape(event) {
     } else {
       const mouseX = event.clientX - translateX;
       const mouseY = event.clientY - translateY;
-      selectedShape.x = mouseX - offsetX;
-      selectedShape.y = mouseY - offsetY;
     }
     drawAll();
   }
@@ -354,9 +352,6 @@ function drawGridSeatPreview(x, y) {
 }
 
 function drawRowSeatPreview(x, y) {
-  const seatRadius = 10;
-  const seatSpacing = 10;
-
   const angle = Math.atan2(y - startY, x - startX);
 
   const totalWidth = Math.sqrt(

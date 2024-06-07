@@ -174,6 +174,7 @@ class Stage extends RoundedBorderRectangle {
 
   draw() {
     super.draw();
+
     ctx.font = `${this.width / 12}px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
@@ -231,7 +232,7 @@ class Area extends RoundedBorderRectangle {
     area.shapes = data.shapes.map((shapeData) => {
       switch (shapeData.type) {
         case "Row":
-          return Row.deserialize(shapeData);
+          return Row.deserialize(shapeData, area);
         case "Text":
           return Text.deserialize(shapeData);
         default:
@@ -242,6 +243,7 @@ class Area extends RoundedBorderRectangle {
   }
 
   addShape(shape) {
+    shape.area = this;
     this.shapes.push(shape);
   }
 
@@ -275,7 +277,11 @@ class Area extends RoundedBorderRectangle {
       startY: startY - this.y,
       seatRadius,
       seatSpacing,
+<<<<<<< HEAD
       rotation: rotation - this.rotation,
+=======
+      rotation,
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
       area: this,
     });
     return row;
@@ -318,6 +324,7 @@ class Area extends RoundedBorderRectangle {
     });
   }
 }
+
 class Text {
   constructor({
     content = "New Text",
@@ -326,8 +333,12 @@ class Text {
     fontSize = 16,
     fontFamily = "Arial",
     color = "#000000",
+<<<<<<< HEAD
     rotation = 0,
     area,
+=======
+    rotation = 0, // Add rotation
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
   }) {
     this.content = content;
     this.x = x;
@@ -335,7 +346,11 @@ class Text {
     this.fontSize = fontSize;
     this.fontFamily = fontFamily;
     this.color = color;
+<<<<<<< HEAD
     this.rotation = rotation;
+=======
+    this.rotation = rotation; // Initialize rotation
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
     this.type = "Text";
     this.area = area;
   }
@@ -348,7 +363,11 @@ class Text {
       fontSize: this.fontSize,
       fontFamily: this.fontFamily,
       color: this.color,
+<<<<<<< HEAD
       rotation: this.rotation,
+=======
+      rotation: this.rotation, // Include rotation in serialization
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
     };
   }
   static deserialize(data) {
@@ -356,6 +375,7 @@ class Text {
   }
 
   draw() {
+<<<<<<< HEAD
     ctx.save();
     const areaCenterX = this.area.x + this.area.width / 2;
     const areaCenterY = this.area.y + this.area.height / 2;
@@ -363,27 +383,46 @@ class Text {
     ctx.translate(areaCenterX, areaCenterY);
     ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
     ctx.translate(-areaCenterX, -areaCenterY);
+=======
+    ctx.save(); // Save the current state
+    ctx.translate(this.x, this.y); // Translate to the x and y coordinates
+    ctx.rotate((this.rotation * Math.PI) / 180); // Rotate context
+    ctx.translate(-this.x, -this.y); // Translate back
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
 
     ctx.font = `${this.fontSize}px ${this.fontFamily}`;
     ctx.fillStyle = this.color;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
+<<<<<<< HEAD
     ctx.fillText(this.content, this.x + this.area.x, this.y + this.area.y);
     ctx.restore();
+=======
+    ctx.fillText(this.content, this.x, this.y);
+
+    ctx.restore(); // Restore the original state
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
   }
 
   isPointInside(x, y) {
     ctx.save();
+<<<<<<< HEAD
     const areaCenterX = this.area.x + this.area.width / 2;
     const areaCenterY = this.area.y + this.area.height / 2;
 
     ctx.translate(areaCenterX, areaCenterY);
     ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
     ctx.translate(-areaCenterX, -areaCenterY);
+=======
+    ctx.translate(this.x, this.y);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.translate(-this.x, -this.y);
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
 
     ctx.font = `${this.fontSize}px ${this.fontFamily}`;
     const textWidth = ctx.measureText(this.content).width;
     const textHeight = this.fontSize;
+<<<<<<< HEAD
     const localX = x - (this.x + this.area.x);
     const localY = y - (this.y + this.area.y);
     const cosR = Math.cos(
@@ -399,6 +438,24 @@ class Text {
       rotatedX <= this.x + this.area.x + textWidth / 2 &&
       rotatedY >= this.y + this.area.y - textHeight / 2 &&
       rotatedY <= this.y + this.area.y + textHeight / 2;
+=======
+
+    const localX = x - this.x;
+    const localY = y - this.y;
+
+    const cosR = Math.cos((-this.rotation * Math.PI) / 180);
+    const sinR = Math.sin((-this.rotation * Math.PI) / 180);
+
+    const rotatedX = localX * cosR - localY * sinR + this.x;
+    const rotatedY = localX * sinR + localY * cosR + this.y;
+
+    const isInside =
+      rotatedX >= this.x - textWidth / 2 &&
+      rotatedX <= this.x + textWidth / 2 &&
+      rotatedY >= this.y - textHeight / 2 &&
+      rotatedY <= this.y + textHeight / 2;
+
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
     ctx.restore();
     return isInside;
   }
@@ -407,12 +464,18 @@ class Text {
     const textWidth = ctx.measureText(this.content).width;
     const textHeight = this.fontSize;
     ctx.save();
+<<<<<<< HEAD
     const areaCenterX = this.area.x + this.area.width / 2;
     const areaCenterY = this.area.y + this.area.height / 2;
 
     ctx.translate(areaCenterX, areaCenterY);
     ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
     ctx.translate(-areaCenterX, -areaCenterY);
+=======
+    ctx.translate(this.x, this.y);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.translate(-this.x, -this.y);
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
 
     ctx.strokeStyle = "black";
     ctx.setLineDash([5, 3]);
@@ -422,6 +485,7 @@ class Text {
       textWidth + 4,
       textHeight + 4
     );
+
     ctx.restore();
   }
 }
@@ -433,7 +497,11 @@ class Row {
     seatRadius = 10,
     seatSpacing = 10,
     rotation = 0,
+<<<<<<< HEAD
     area,
+=======
+    area = null,
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
   }) {
     this.name = name;
     this.startX = startX;
@@ -442,6 +510,7 @@ class Row {
     this.seatSpacing = seatSpacing;
     this.seats = [];
     this.rotation = rotation;
+    this.area = area;
     this.type = "Row";
     this.area = area;
   }
@@ -459,21 +528,37 @@ class Row {
     };
   }
 
-  static deserialize(data) {
-    const row = new Row(data);
+  static deserialize(data, area = null) {
+    const row = new Row({
+      ...data,
+    });
     row.seats = data.seats.map((seatData) => Seat.deserialize(seatData));
     return row;
   }
 
+  getAbsoluteCoordinates() {
+    if (!this.area) return { x: this.startX, y: this.startY };
+    return {
+      x: this.area.x + this.startX,
+      y: this.area.y + this.startY,
+    };
+  }
+
   isPointInside(x, y) {
+    const { x: absX, y: absY } = this.getAbsoluteCoordinates();
     const totalWidth =
       (this.seats.length - 1) * (this.seatRadius * 2 + this.seatSpacing) +
       this.seatRadius * 2;
     const rectWidth = totalWidth;
     const rectHeight = this.seatRadius * 2;
 
+<<<<<<< HEAD
     const translatedX = x - (this.startX + this.area.x);
     const translatedY = y - (this.startY + this.area.y);
+=======
+    const translatedX = x - absX;
+    const translatedY = y - absY;
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
 
     const rotationRadians =
       ((this.rotation + this.area.rotation) * Math.PI) / 180;
@@ -518,10 +603,17 @@ class Row {
   }
 
   draw() {
+    const { x: absX, y: absY } = this.getAbsoluteCoordinates();
     ctx.save();
+<<<<<<< HEAD
     ctx.translate(this.startX + this.area.x, this.startY + this.area.y);
     ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
     ctx.translate(-(this.startX + this.area.x), -(this.startY + this.area.y));
+=======
+    ctx.translate(absX, absY);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.translate(-absX, -absY);
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
 
     console.log(this.seats);
     this.seats.forEach((seat) => seat.draw());
@@ -530,10 +622,17 @@ class Row {
   }
 
   drawBoundingRectangle() {
+    const { x: absX, y: absY } = this.getAbsoluteCoordinates();
     ctx.save();
+<<<<<<< HEAD
     ctx.translate(this.startX + this.area.x, this.startY + this.area.y);
     ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
     ctx.translate(-(this.startX + this.area.x), -(this.startY + this.area.y));
+=======
+    ctx.translate(absX, absY);
+    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
+    ctx.translate(-absX, -absY);
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
 
     const totalWidth =
       (this.seats.length - 1) * (this.seatRadius * 2 + this.seatSpacing);
@@ -543,8 +642,13 @@ class Row {
     ctx.strokeStyle = "black";
     ctx.setLineDash([5, 3]);
     ctx.strokeRect(
+<<<<<<< HEAD
       this.startX + this.area.x - this.seatRadius - 2,
       this.startY + this.area.y - this.seatRadius - 2,
+=======
+      absX - this.seatRadius - 2,
+      absY - this.seatRadius - 2,
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
       rectWidth + 4,
       rectHeight + 4
     );
@@ -570,6 +674,7 @@ class Row {
   setSeatsCoor(x, y) {
     this.startX = x;
     this.startY = y;
+<<<<<<< HEAD
     this.updateChildren();
   }
   updateChildren() {
@@ -578,6 +683,9 @@ class Row {
       seat.radius = this.seatRadius;
       seat.x = index * (this.seatRadius * 2 + this.seatSpacing);
     });
+=======
+    this.updateSeats();
+>>>>>>> 164d24b72c02c3e99ec31439dda3cf6d17b1827a
   }
 }
 
