@@ -139,12 +139,11 @@ function selectShape(event) {
 }
 
 function dragShape(event) {
-  console.log(selectedShape);
   if (selectedShape) {
     if (selectedShape.type === "Row") {
-      const mouseX = event.clientX;
-      const mouseY = event.clientY;
-      selectedShape.setSeatsCoor(mouseX - offsetX, mouseY - offsetY, ctx);
+      const mouseX = event.clientX - translateX;
+      const mouseY = event.clientY - translateY;
+      selectedShape.setSeatsCoor(mouseX - offsetX, mouseY - offsetY);
     } else if (selectedShape.type === "Text") {
       const mouseX = event.clientX - translateX;
       const mouseY = event.clientY - translateY;
@@ -196,7 +195,6 @@ function panCanvas(e) {
   translateY += deltaY;
   ctx.translate(deltaX, deltaY);
   drawAll();
-  console.log(e.clientX, e.clientY);
 }
 
 function stopPanning() {
@@ -244,8 +242,6 @@ function zoomInArea(event) {
 
 function zoomInOnShape(shape) {
   saveCanvasState();
-  console.log(canvas.height);
-  console.log(canvas.width);
   shapes.forEach((s) => (s.isHidden = s !== shape));
 
   let zoomedWidth, zoomedHeight;
@@ -294,6 +290,7 @@ function startSeatDrawing(event) {
     isDrawing = true;
     startX = event.clientX;
     startY = event.clientY;
+
     canvas.removeEventListener("click", startSeatDrawing);
     canvas.addEventListener("mousemove", drawSeatPreview);
     canvas.addEventListener("click", finishSeatDrawing);
@@ -458,7 +455,6 @@ function selectAreaShape(event) {
 
   selectedShape = null;
   for (let i = zoomedArea.shapes.length - 1; i >= 0; i--) {
-    console.log(zoomedArea.shapes);
     if (zoomedArea.shapes[i] instanceof Row) {
       rowEditor(zoomedArea.shapes[i], mouseX, mouseY);
       if (selectedShape == null) {
@@ -494,9 +490,10 @@ function insertText(event) {
   if (insertTextMode) {
     const newText = new Text({
       content: "New Text",
-      x: mouseX,
-      y: mouseY,
+      x: mouseX - zoomedArea.x,
+      y: mouseY - zoomedArea.y,
       fontSize: 30,
+      area: zoomedArea,
     });
     zoomedArea.addShape(newText);
     textEditor(newText, mouseX, mouseY);

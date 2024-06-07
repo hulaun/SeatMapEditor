@@ -13,8 +13,6 @@ function isSeatInsideArea(row, area) {
 
 function mainEditor() {
   let areaListHtml = "";
-  console.log(shapes);
-  console.log(shapes.filter((shape) => shape.type === "Area"));
   shapes
     .filter((shape) => shape.type === "Area")
     .forEach((area) => {
@@ -22,7 +20,6 @@ function mainEditor() {
       area.shapes
         .filter((shape) => shape.type === "Row")
         .forEach((row) => {
-          console.log(row.seats);
           seatCount += row.seats.length;
         });
       areaListHtml += `
@@ -206,6 +203,7 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
 
     document.getElementById("rotation").addEventListener("input", (e) => {
       shape.rotation = parseInt(e.target.value, 10);
+      shape.updateChildren();
       saveCanvasState();
       drawAll();
     });
@@ -217,8 +215,6 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
 
 function areaEditor() {
   let areaListHtml = "";
-  console.log(shapes);
-  console.log(shapes.filter((shape) => shape.type === "Area"));
 
   let seatCount = 0;
   let rowCount = 0;

@@ -28,12 +28,12 @@ let currentAreaStateIndex = -1;
 
 let shapes = [];
 function drawAll() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(-300, -300, canvas.width * 1.5, canvas.height * 1.5);
   shapes.forEach((shape) => {
     if (!shape.isHidden) {
       if (zoomedArea != null) {
         ctx.fillStyle = "lightgrey";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(-300, -300, canvas.width * 1.5, canvas.height * 1.5);
         zoomedArea.draw(true);
         if (selectedShape != null) {
           if (selectedShape.type === "Row") {
@@ -48,6 +48,10 @@ function drawAll() {
       } else {
         ctx.strokeStyle = "black";
         shape.draw();
+      }
+
+      if (zoomedArea == null && shape.type === "Area") {
+        shape.updateChildren();
       }
     }
   });
@@ -78,11 +82,9 @@ function updateCurrentCanvasState() {
   if (currentStateIndex < 0) return;
 
   const currentState = { ...canvasStates[currentStateIndex - 1] };
-  console.log(canvasStates[currentStateIndex - 1]);
   const updatedShapes = [...currentState.shapes];
 
   for (let i = 0; i < updatedShapes.length; i++) {
-    console.log(updatedShapes[i], zoomedArea);
     if (updatedShapes[i].name === zoomedArea.name) {
       updatedShapes[i].shapes = zoomedArea.shapes;
       break;

@@ -72,7 +72,6 @@ class RoundedBorderRectangle extends Shape {
   }
 
   static deserialize(data) {
-    console.log(data);
     return new RoundedBorderRectangle(data);
   }
 
@@ -229,9 +228,7 @@ class Area extends RoundedBorderRectangle {
 
   static deserialize(data) {
     const area = new Area(data);
-    console.log(area);
     area.shapes = data.shapes.map((shapeData) => {
-      console.log(shapeData);
       switch (shapeData.type) {
         case "Row":
           return Row.deserialize(shapeData);
@@ -263,12 +260,6 @@ class Area extends RoundedBorderRectangle {
     return "area";
   }
 
-  addText({ content, x, y, fontSize, fontFamily, color }) {
-    const text = new Text({ content, x, y, fontSize, fontFamily, color });
-    this.addShape(text);
-    return text;
-  }
-
   createRow({
     name = "",
     startX,
@@ -277,13 +268,15 @@ class Area extends RoundedBorderRectangle {
     seatSpacing = 10,
     rotation = 0,
   }) {
+    console.log(this.x, this.y, startX, startY, rotation, this.rotation);
     const row = new Row({
       name,
-      startX,
-      startY,
+      startX: startX - this.x,
+      startY: startY - this.y,
       seatRadius,
       seatSpacing,
-      rotation,
+      rotation: rotation - this.rotation,
+      area: this,
     });
     return row;
   }
@@ -304,6 +297,7 @@ class Area extends RoundedBorderRectangle {
       seatRadius,
       seatSpacing,
       rotation,
+      area: this,
     });
 
     for (let seatIndex = 0; seatIndex < numberOfSeats; seatIndex++) {
@@ -314,6 +308,15 @@ class Area extends RoundedBorderRectangle {
     }
     this.addShape(row);
   }
+
+  updateChildren() {
+    this.shapes.forEach((shape) => {
+      shape.area = this;
+      if (shape.type === "Row") {
+        shape.updateChildren();
+      }
+    });
+  }
 }
 class Text {
   constructor({
@@ -323,6 +326,8 @@ class Text {
     fontSize = 16,
     fontFamily = "Arial",
     color = "#000000",
+    rotation = 0,
+    area,
   }) {
     this.content = content;
     this.x = x;
@@ -330,9 +335,10 @@ class Text {
     this.fontSize = fontSize;
     this.fontFamily = fontFamily;
     this.color = color;
+    this.rotation = rotation;
     this.type = "Text";
+    this.area = area;
   }
-
   serialize() {
     return {
       type: this.type,
@@ -342,43 +348,77 @@ class Text {
       fontSize: this.fontSize,
       fontFamily: this.fontFamily,
       color: this.color,
+      rotation: this.rotation,
     };
   }
-
   static deserialize(data) {
     return new Text(data);
   }
 
   draw() {
+    ctx.save();
+    const areaCenterX = this.area.x + this.area.width / 2;
+    const areaCenterY = this.area.y + this.area.height / 2;
+
+    ctx.translate(areaCenterX, areaCenterY);
+    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
+    ctx.translate(-areaCenterX, -areaCenterY);
+
     ctx.font = `${this.fontSize}px ${this.fontFamily}`;
     ctx.fillStyle = this.color;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    ctx.fillText(this.content, this.x, this.y);
+    ctx.fillText(this.content, this.x + this.area.x, this.y + this.area.y);
+    ctx.restore();
   }
 
   isPointInside(x, y) {
+    ctx.save();
+    const areaCenterX = this.area.x + this.area.width / 2;
+    const areaCenterY = this.area.y + this.area.height / 2;
+
+    ctx.translate(areaCenterX, areaCenterY);
+    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
+    ctx.translate(-areaCenterX, -areaCenterY);
+
     ctx.font = `${this.fontSize}px ${this.fontFamily}`;
     const textWidth = ctx.measureText(this.content).width;
     const textHeight = this.fontSize;
-    return (
-      x >= this.x - textWidth / 2 &&
-      x <= this.x + textWidth / 2 &&
-      y >= this.y - textHeight / 2 &&
-      y <= this.y + textHeight / 2
+    const localX = x - (this.x + this.area.x);
+    const localY = y - (this.y + this.area.y);
+    const cosR = Math.cos(
+      (-(this.rotation + this.area.rotation) * Math.PI) / 180
     );
+    const sinR = Math.sin(
+      (-(this.rotation + this.area.rotation) * Math.PI) / 180
+    );
+    const rotatedX = localX * cosR - localY * sinR + (this.x + this.area.x);
+    const rotatedY = localX * sinR + localY * cosR + (this.y + this.area.y);
+    const isInside =
+      rotatedX >= this.x + this.area.x - textWidth / 2 &&
+      rotatedX <= this.x + this.area.x + textWidth / 2 &&
+      rotatedY >= this.y + this.area.y - textHeight / 2 &&
+      rotatedY <= this.y + this.area.y + textHeight / 2;
+    ctx.restore();
+    return isInside;
   }
 
   drawBoundingRectangle() {
     const textWidth = ctx.measureText(this.content).width;
-    const textHeight = this.fontSize; // Approximation
-
+    const textHeight = this.fontSize;
     ctx.save();
+    const areaCenterX = this.area.x + this.area.width / 2;
+    const areaCenterY = this.area.y + this.area.height / 2;
+
+    ctx.translate(areaCenterX, areaCenterY);
+    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
+    ctx.translate(-areaCenterX, -areaCenterY);
+
     ctx.strokeStyle = "black";
     ctx.setLineDash([5, 3]);
     ctx.strokeRect(
-      this.x - textWidth / 2 - 2,
-      this.y - textHeight / 2 - 4,
+      this.x + this.area.x - textWidth / 2 - 2,
+      this.y + this.area.y - textHeight / 2 - 4,
       textWidth + 4,
       textHeight + 4
     );
@@ -393,6 +433,7 @@ class Row {
     seatRadius = 10,
     seatSpacing = 10,
     rotation = 0,
+    area,
   }) {
     this.name = name;
     this.startX = startX;
@@ -402,6 +443,7 @@ class Row {
     this.seats = [];
     this.rotation = rotation;
     this.type = "Row";
+    this.area = area;
   }
 
   serialize() {
@@ -430,10 +472,11 @@ class Row {
     const rectWidth = totalWidth;
     const rectHeight = this.seatRadius * 2;
 
-    const translatedX = x - this.startX;
-    const translatedY = y - this.startY;
+    const translatedX = x - (this.startX + this.area.x);
+    const translatedY = y - (this.startY + this.area.y);
 
-    const rotationRadians = (this.rotation * Math.PI) / 180;
+    const rotationRadians =
+      ((this.rotation + this.area.rotation) * Math.PI) / 180;
 
     const cosR = Math.cos(-rotationRadians);
     const sinR = Math.sin(-rotationRadians);
@@ -453,13 +496,18 @@ class Row {
     this.seats.push(seat);
   }
 
+  getAreaCenter() {
+    return {
+      x: this.area.x + this.area.width / 2,
+      y: this.area.y + this.area.height / 2,
+    };
+  }
+
   createSeat({ number, isBuyed = false }) {
-    const x =
-      this.startX +
-      this.seats.length * (this.seatRadius * 2 + this.seatSpacing);
-    const y = this.startY;
+    const x = this.seats.length * (this.seatRadius * 2 + this.seatSpacing);
+    const y = 0;
     const seat = new Seat({
-      rowName: this.name,
+      row: this,
       number: number,
       x: x,
       y: y,
@@ -471,10 +519,11 @@ class Row {
 
   draw() {
     ctx.save();
-    ctx.translate(this.startX, this.startY);
-    ctx.rotate((this.rotation * Math.PI) / 180);
-    ctx.translate(-this.startX, -this.startY);
+    ctx.translate(this.startX + this.area.x, this.startY + this.area.y);
+    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
+    ctx.translate(-(this.startX + this.area.x), -(this.startY + this.area.y));
 
+    console.log(this.seats);
     this.seats.forEach((seat) => seat.draw());
 
     ctx.restore();
@@ -482,9 +531,9 @@ class Row {
 
   drawBoundingRectangle() {
     ctx.save();
-    ctx.translate(this.startX, this.startY);
-    ctx.rotate((this.rotation * Math.PI) / 180);
-    ctx.translate(-this.startX, -this.startY);
+    ctx.translate(this.startX + this.area.x, this.startY + this.area.y);
+    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
+    ctx.translate(-(this.startX + this.area.x), -(this.startY + this.area.y));
 
     const totalWidth =
       (this.seats.length - 1) * (this.seatRadius * 2 + this.seatSpacing);
@@ -494,8 +543,8 @@ class Row {
     ctx.strokeStyle = "black";
     ctx.setLineDash([5, 3]);
     ctx.strokeRect(
-      this.startX - this.seatRadius - 2,
-      this.startY - this.seatRadius - 2,
+      this.startX + this.area.x - this.seatRadius - 2,
+      this.startY + this.area.y - this.seatRadius - 2,
       rectWidth + 4,
       rectHeight + 4
     );
@@ -505,40 +554,36 @@ class Row {
 
   setSeatRadius(newRadius) {
     this.seatRadius = newRadius;
-    this.updateSeats();
+    this.updateChildren();
   }
 
   setSeatSpacing(newSpacing) {
     this.seatSpacing = newSpacing;
-    this.updateSeats();
+    this.updateChildren();
   }
 
   setRowName(newName) {
     this.name = newName;
-    this.updateSeats();
-  }
-
-  updateSeats() {
-    this.seats.forEach((seat, index) => {
-      seat.rowName = this.name;
-      seat.x = this.startX + index * (this.seatRadius * 2 + this.seatSpacing);
-      seat.radius = this.seatRadius;
-    });
+    this.updateChildren();
   }
 
   setSeatsCoor(x, y) {
     this.startX = x;
     this.startY = y;
+    this.updateChildren();
+  }
+  updateChildren() {
     this.seats.forEach((seat, index) => {
-      seat.x = x + index * (this.seatRadius * 2 + this.seatSpacing);
-      seat.y = y;
+      seat.row = this;
+      seat.radius = this.seatRadius;
+      seat.x = index * (this.seatRadius * 2 + this.seatSpacing);
     });
   }
 }
 
 class Seat {
-  constructor({ rowName = "", number, x, y, radius, isBuyed = false }) {
-    this.rowName = rowName;
+  constructor({ row, number, x, y, radius, isBuyed = false }) {
+    this.row = row;
     this.number = number;
     this.x = x;
     this.y = y;
@@ -550,7 +595,6 @@ class Seat {
   serialize() {
     return {
       type: this.type,
-      rowName: this.rowName,
       number: this.number,
       x: this.x,
       y: this.y,
@@ -565,7 +609,14 @@ class Seat {
 
   draw() {
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+    ctx.arc(
+      this.x + this.row.startX + this.row.area.x,
+      this.y + this.row.startY + this.row.area.y,
+      this.radius,
+      0,
+      Math.PI * 2,
+      false
+    );
     ctx.strokeStyle = "black";
     ctx.stroke();
     if (this.isBuyed) {
@@ -576,6 +627,10 @@ class Seat {
     ctx.font = `${this.radius * 0.75}px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    ctx.fillText(this.rowName + this.number, this.x, this.y);
+    ctx.fillText(
+      this.row.name + this.number,
+      this.x + this.row.startX + this.row.area.x,
+      this.y + this.row.startY + this.row.area.y
+    );
   }
 }

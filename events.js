@@ -42,7 +42,9 @@ function removeMainMapEventListeners() {
   canvas.removeEventListener("mousemove", panCanvas);
   canvas.removeEventListener("mouseup", stopPanning);
 }
-
+canvas.addEventListener("wheel", (event) => {
+  handleWheel(event);
+});
 function mainMapReset() {
   selectedShape = null;
   removeMainMapEventListeners();
@@ -137,34 +139,42 @@ saveButton.addEventListener("click", () => {
   document.body.removeChild(a);
 });
 
-loadButton.addEventListener("change", (event) => {
-  const file = event.target.files[0];
+loadButton.addEventListener("click", () => {
+  document.getElementById("fileInput").click();
+});
+document.getElementById("fileInput").addEventListener("change", (event) => {
+  const fileInput = event.target;
+  const file = fileInput.files[0];
   if (!file) return;
 
   const reader = new FileReader();
   reader.onload = function (e) {
     const json = e.target.result;
     const canvasData = JSON.parse(json);
+    console.log(canvasData.shapes);
 
     shapes = [];
 
-    canvasData.shapes.forEach((shapeData) => {
-      const ShapeClass = window[shapeData.data.type];
-      if (ShapeClass) {
-        const shapeInstance = new ShapeClass();
-        shapeInstance.deserialize(shapeData.data);
-        shapes.push(shapeInstance);
+    shapes = canvasData.shapes.map((shapeData) => {
+      switch (shapeData.data.type) {
+        case "RoundedBorderRectangle":
+          return RoundedBorderRectangle.deserialize(shapeData);
+        case "Stage":
+          return Stage.deserialize(shapeData.data);
+        case "Area":
+          return Area.deserialize(shapeData.data);
+        default:
+          console.log(shapeData);
       }
     });
+    console.log(shapes);
 
     drawAll();
   };
 
   reader.readAsText(file);
 });
-canvas.addEventListener("wheel", (event) => {
-  handleWheel(event);
-});
+
 panningButton.addEventListener("click", () => {
   mainMapReset();
   canvas.addEventListener("mousedown", startPanning);
@@ -190,7 +200,6 @@ function preventDefault(event) {
   event.preventDefault();
 }
 function preventPanning() {
-  console.log("why");
   canvas.addEventListener("mousedown", preventDefault);
   canvas.addEventListener("mousemove", preventDefault);
   canvas.addEventListener("mouseup", preventDefault);
