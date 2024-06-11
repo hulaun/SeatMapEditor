@@ -40,6 +40,8 @@ function drawAll() {
             selectedShape.drawBoundingRectangle();
           } else if (selectedShape.type === "Text") {
             selectedShape.drawBoundingRectangle();
+          } else if (selectedShape.type === "Seat") {
+            selectedShape.drawBoundingRectangle();
           }
         }
       } else if (shape === selectedShape) {
@@ -103,8 +105,6 @@ function restoreCanvasState(index) {
 
   shapes = state.shapes.map((shapeData) => {
     switch (shapeData.type) {
-      case "RoundedBorderRectangle":
-        return RoundedBorderRectangle.deserialize(shapeData);
       case "Stage":
         return Stage.deserialize(shapeData);
       case "Area":

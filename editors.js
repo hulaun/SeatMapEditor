@@ -44,7 +44,7 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
 
     offsetX = mouseX - shape.x;
     offsetY = mouseY - shape.y;
-    setEditorTitle(`<h4>${selectedShape}</h4>`);
+    setEditorTitle(`<h4>${selectedShape.name}</h4>`);
     setEditorContent(`
       <label for="areaName">Area Name:</label>
       <input type="text" id="areaName" value="${shape.name || ""}">
@@ -282,6 +282,49 @@ function rowEditor(shape, mouseX, mouseY) {
 
     canvas.addEventListener("mousemove", dragShape);
     canvas.addEventListener("mouseup", stopDragShape);
+  }
+}
+
+function seatEditor(seat, mouseX, mouseY) {
+  console.log("why");
+  if (seat.isPointInside(mouseX, mouseY)) {
+    console.log("why2");
+    selectedShape = seat;
+
+    offsetX = mouseX - seat.x;
+    offsetY = mouseY - seat.y;
+    setEditorTitle("<h4>Select and Edit Seat Options</h4>");
+    setEditorContent(`
+      <label for="seatNumber">Seat Number:</label>
+      <input type="text" id="seatNumber" value="${seat.number || ""}">
+      <br>
+      <label for="seatRadius">Seat Radius:</label>
+      <input type="range" id="seatRadius" min="1" max="50" step="1" value="${
+        seat.radius || 10
+      }">
+      <br>
+      <label for="seatIsBuyed">Is Seat Bought:</label>
+      <input type="checkbox" id="seatIsBuyed" ${seat.isBuyed ? "checked" : ""}>
+      <br>
+    `);
+
+    document.getElementById("seatNumber").addEventListener("input", (e) => {
+      seat.number = e.target.value;
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("seatRadius").addEventListener("input", (e) => {
+      seat.radius = parseInt(e.target.value, 10);
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("seatIsBuyed").addEventListener("change", (e) => {
+      seat.isBuyed = e.target.checked;
+      saveAreaCanvasState();
+      drawAll();
+    });
   }
 }
 

@@ -28,7 +28,7 @@ function drawAreaPreview(event) {
   const height = currentY - startY;
 
   drawAll();
-  const tempRect = new RoundedBorderRectangle({
+  const tempRect = new Rectangle({
     x: startX,
     y: startY,
     width: width,
@@ -152,6 +152,8 @@ function dragShape(event) {
     } else {
       const mouseX = event.clientX - translateX;
       const mouseY = event.clientY - translateY;
+      selectedShape.x = mouseX - offsetX;
+      selectedShape.y = mouseY - offsetY;
     }
     drawAll();
   }
@@ -273,21 +275,21 @@ function startSeatDrawing(event) {
   if (selectedType === "grid") {
     if (clickCount === 0) {
       isDrawing = true;
-      startX = event.clientX;
-      startY = event.clientY;
+      startX = event.clientX - translateX;
+      startY = event.clientY - translateY;
       clickCount++;
       canvas.addEventListener("mousemove", drawSeatPreview);
     } else if (clickCount === 1) {
-      secondX = event.clientX;
-      secondY = event.clientY;
+      secondX = event.clientX - translateX;
+      secondY = event.clientY - translateY;
       clickCount++;
       canvas.removeEventListener("click", startSeatDrawing);
       canvas.addEventListener("click", finishSeatDrawing);
     }
   } else if (selectedType === "row") {
     isDrawing = true;
-    startX = event.clientX;
-    startY = event.clientY;
+    startX = event.clientX - translateX;
+    startY = event.clientY - translateY;
 
     canvas.removeEventListener("click", startSeatDrawing);
     canvas.addEventListener("mousemove", drawSeatPreview);
@@ -298,8 +300,8 @@ function startSeatDrawing(event) {
 function drawSeatPreview(event) {
   if (!isDrawing) return;
 
-  const currentX = event.clientX;
-  const currentY = event.clientY;
+  const currentX = event.clientX - translateX;
+  const currentY = event.clientY - translateY;
   drawAll();
 
   if (selectedType === "grid") {
@@ -376,8 +378,8 @@ function finishSeatDrawing(event) {
   canvas.removeEventListener("mousemove", drawSeatPreview);
   canvas.removeEventListener("click", finishSeatDrawing);
 
-  const endX = event.clientX;
-  const endY = event.clientY;
+  const endX = event.clientX - translateX;
+  const endY = event.clientY - translateY;
 
   if (selectedType === "row") {
     const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
@@ -476,11 +478,21 @@ function selectAreaShape(event) {
 function selectSeat(event) {
   const mouseX = event.clientX - translateX;
   const mouseY = event.clientY - translateY;
+  const selectedRow = selectedShape;
+  for (let i = selectedRow.seats.length - 1; i >= 0; i--) {
+    seatEditor(selectedRow.seats[i], mouseX, mouseY);
+    if (selectedRow != selectedShape) {
+      break;
+    }
+  }
+  drawAll();
 }
 
 function insertText(event) {
-  const mouseX = event.clientX - canvas.getBoundingClientRect().left;
-  const mouseY = event.clientY - canvas.getBoundingClientRect().top;
+  const mouseX =
+    event.clientX - canvas.getBoundingClientRect().left - translateX;
+  const mouseY =
+    event.clientY - canvas.getBoundingClientRect().top - translateY;
 
   if (insertTextMode) {
     const newText = new Text({

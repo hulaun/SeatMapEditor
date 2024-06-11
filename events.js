@@ -1,6 +1,6 @@
 const insertArea = document.getElementById("insertArea");
-const insertStage = document.getElementById("insertStage");
-const insertAreaDropDown = document.getElementById("insertAreaDropDown");
+const insertRectangleStage = document.getElementById("insertRectangleStage");
+const insertStageDropDown = document.getElementById("insertStageDropDown");
 const insertSeats = document.getElementById("insertSeats");
 const insertGridSeats = document.getElementById("insertGridSeats");
 const insertSeatDropDown = document.getElementById("insertSeatDropDown");
@@ -61,11 +61,11 @@ window.addEventListener("click", (event) => {
     }
   }
   if (
-    !event.target.matches("#insertArea") &&
-    !event.target.matches("#insertArea *")
+    !event.target.matches("#insertRectangleStage") &&
+    !event.target.matches("#insertRectangleStage *")
   ) {
-    if (insertAreaDropDown.classList.contains("show")) {
-      insertAreaDropDown.classList.remove("show");
+    if (insertStageDropDown.classList.contains("show")) {
+      insertStageDropDown.classList.remove("show");
     }
   }
   if (
@@ -89,13 +89,13 @@ dropdownMenuButton.addEventListener("click", (event) => {
   mapDropDown.classList.toggle("show");
 });
 
-insertStage.addEventListener("click", () => {
+insertRectangleStage.addEventListener("click", () => {
   mainMapReset();
+  insertStageDropDown.classList.toggle("show");
   canvas.addEventListener("mousedown", startStageDrawing);
 });
 insertArea.addEventListener("click", () => {
   mainMapReset();
-  insertAreaDropDown.classList.toggle("show");
   canvas.addEventListener("mousedown", startAreaDrawing);
 });
 
@@ -157,8 +157,6 @@ document.getElementById("fileInput").addEventListener("change", (event) => {
 
     shapes = canvasData.shapes.map((shapeData) => {
       switch (shapeData.data.type) {
-        case "RoundedBorderRectangle":
-          return RoundedBorderRectangle.deserialize(shapeData);
         case "Stage":
           return Stage.deserialize(shapeData.data);
         case "Area":

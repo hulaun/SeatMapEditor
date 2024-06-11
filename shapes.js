@@ -22,7 +22,7 @@ class Shape {
   }
 }
 
-class RoundedBorderRectangle extends Shape {
+class Rectangle extends Shape {
   constructor({
     x,
     y,
@@ -37,7 +37,7 @@ class RoundedBorderRectangle extends Shape {
     rotation = 0,
   }) {
     super();
-    this.type = "RoundedBorderRectangle";
+    this.type = "Rectangle";
     this.x = x;
     this.y = y;
     this.width = width;
@@ -72,7 +72,7 @@ class RoundedBorderRectangle extends Shape {
   }
 
   static deserialize(data) {
-    return new RoundedBorderRectangle(data);
+    return new Rectangle(data);
   }
 
   isPointInside(x, y) {
@@ -128,7 +128,155 @@ class RoundedBorderRectangle extends Shape {
     return "rectangle";
   }
 }
-class Stage extends RoundedBorderRectangle {
+
+class Ellipse extends Shape {
+  constructor({ x, y, width, height, color = "white", rotation = 0 }) {
+    super();
+    this.type = "Ellipse";
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.color = color;
+    this.rotation = rotation;
+  }
+
+  serialize() {
+    return {
+      ...super.serialize(),
+      type: this.type,
+      x: this.x,
+      y: this.y,
+      width: this.width,
+      height: this.height,
+      color: this.color,
+      rotation: this.rotation,
+    };
+  }
+
+  static deserialize(data) {
+    return new Ellipse(data);
+  }
+
+  isPointInside(x, y) {
+    const translatedX = x - (this.x + this.width / 2);
+    const translatedY = y - (this.y + this.height / 2);
+
+    const rotationRadians = (this.rotation * Math.PI) / 180;
+
+    const cosR = Math.cos(-rotationRadians);
+    const sinR = Math.sin(-rotationRadians);
+
+    const localX = translatedX * cosR - translatedY * sinR + this.width / 2;
+    const localY = translatedX * sinR + translatedY * cosR + this.height / 2;
+
+    const normalizedX = (localX - this.width / 2) / (this.width / 2);
+    const normalizedY = (localY - this.height / 2) / (this.height / 2);
+
+    return normalizedX * normalizedX + normalizedY * normalizedY <= 1;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.translate(-this.width / 2, -this.height / 2);
+    ctx.beginPath();
+    ctx.ellipse(
+      this.width / 2,
+      this.height / 2,
+      this.width / 2,
+      this.height / 2,
+      0,
+      0,
+      Math.PI * 2
+    );
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fillStyle = this.color;
+    ctx.fill();
+    ctx.restore();
+    return "Ellipse";
+  }
+}
+
+class Polygon extends Shape {
+  constructor() {
+    super();
+    this.type = "Polygon";
+    this.points = [];
+  }
+
+  addPoint(x, y) {
+    this.points.push({ x, y });
+  }
+
+  closePolygon() {
+    if (this.points.length > 2) {
+      const firstPoint = this.points[0];
+      const lastPoint = this.points[this.points.length - 1];
+      const distance = Math.sqrt(
+        (firstPoint.x - lastPoint.x) ** 2 + (firstPoint.y - lastPoint.y) ** 2
+      );
+
+      if (distance < 10) {
+        this.points.push(firstPoint); // Close the polygon by adding the first point to the end
+        return true;
+      }
+    }
+    return false;
+  }
+
+  serialize() {
+    return {
+      ...super.serialize(),
+      type: this.type,
+      points: this.points,
+    };
+  }
+
+  static deserialize(data) {
+    const polygon = new Polygon();
+    polygon.points = data.points;
+    return polygon;
+  }
+
+  isPointInside(x, y) {
+    // Ray-casting algorithm to determine if point is inside polygon
+    let isInside = false;
+    const points = this.points;
+    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+      const xi = points[i].x,
+        yi = points[i].y;
+      const xj = points[j].x,
+        yj = points[j].y;
+
+      const intersect =
+        yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+      if (intersect) isInside = !isInside;
+    }
+    return isInside;
+  }
+
+  draw() {
+    if (this.points.length < 2) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(this.points[i].x, this.points[i].y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fillStyle = "rgba(0, 0, 255, 0.5)"; // Fill color for the polygon
+    ctx.fill();
+    ctx.restore();
+    return "polygon";
+  }
+}
+
+class Stage extends Rectangle {
   constructor({
     name = "Stage",
     x,
@@ -184,7 +332,7 @@ class Stage extends RoundedBorderRectangle {
   }
 }
 
-class Area extends RoundedBorderRectangle {
+class Area extends Rectangle {
   constructor({
     name = "Name",
     x,
@@ -650,5 +798,34 @@ class Seat {
       this.x + this.row.startX + this.row.area.x,
       this.y + this.row.startY + this.row.area.y
     );
+  }
+
+  isPointInside(x, y) {
+    const seatCenterX = this.x + this.row.startX + this.row.area.x;
+    const seatCenterY = this.y + this.row.startY + this.row.area.y;
+
+    // Calculate the distance between the point and the seat's center
+    const distance = Math.sqrt((x - seatCenterX) ** 2 + (y - seatCenterY) ** 2);
+
+    // Check if the distance is less than or equal to the seat's radius
+    return distance <= this.radius;
+  }
+
+  drawBoundingRectangle() {
+    const seatCenterX = this.x + this.row.startX + this.row.area.x;
+    const seatCenterY = this.y + this.row.startY + this.row.area.y;
+    const rectX = seatCenterX - this.radius - 2;
+    const rectY = seatCenterY - this.radius - 2;
+    const rectWidth = this.radius * 2 + 4;
+    const rectHeight = this.radius * 2 + 4;
+
+    ctx.save();
+
+    ctx.strokeStyle = "black";
+    ctx.setLineDash([5, 3]);
+
+    ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+
+    ctx.restore();
   }
 }
