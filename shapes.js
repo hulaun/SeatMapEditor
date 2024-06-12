@@ -199,12 +199,12 @@ class Ellipse extends Shape {
     return "Ellipse";
   }
 }
-
 class Polygon extends Shape {
   constructor() {
     super();
     this.type = "Polygon";
     this.points = [];
+    this.rotation = 0;
   }
 
   addPoint(x, y) {
@@ -220,6 +220,7 @@ class Polygon extends Shape {
       );
 
       if (distance < 10) {
+        this.points.pop();
         this.points.push(firstPoint); // Close the polygon by adding the first point to the end
         return true;
       }
@@ -227,17 +228,51 @@ class Polygon extends Shape {
     return false;
   }
 
+  setRotation(angle) {
+    this.rotation = angle * (Math.PI / 180); // Convert degrees to radians
+  }
+
+  rotatePoint(point, angle, center) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const dx = point.x - center.x;
+    const dy = point.y - center.y;
+
+    return {
+      x: center.x + dx * cos - dy * sin,
+      y: center.y + dx * sin + dy * cos,
+    };
+  }
+
+  getCenter() {
+    const sum = this.points.reduce(
+      (acc, point) => {
+        acc.x += point.x;
+        acc.y += point.y;
+        return acc;
+      },
+      { x: 0, y: 0 }
+    );
+
+    return {
+      x: sum.x / this.points.length,
+      y: sum.y / this.points.length,
+    };
+  }
+
   serialize() {
     return {
       ...super.serialize(),
       type: this.type,
       points: this.points,
+      rotation: this.rotation,
     };
   }
 
   static deserialize(data) {
     const polygon = new Polygon();
     polygon.points = data.points;
+    polygon.rotation = data.rotation;
     return polygon;
   }
 
@@ -261,22 +296,50 @@ class Polygon extends Shape {
   draw() {
     if (this.points.length < 2) return;
 
+    const center = this.getCenter();
+    const rotatedPoints = this.points.map((point) =>
+      this.rotatePoint(point, this.rotation, center)
+    );
+
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(this.points[0].x, this.points[0].y);
-    for (let i = 1; i < this.points.length; i++) {
-      ctx.lineTo(this.points[i].x, this.points[i].y);
+    ctx.moveTo(rotatedPoints[0].x, rotatedPoints[0].y);
+    for (let i = 1; i < rotatedPoints.length; i++) {
+      ctx.lineTo(rotatedPoints[i].x, rotatedPoints[i].y);
     }
     ctx.closePath();
     ctx.stroke();
-    ctx.fillStyle = "rgba(0, 0, 255, 0.5)"; // Fill color for the polygon
+    ctx.fillStyle = "#EFEFEF"; // Fill color for the polygon
     ctx.fill();
     ctx.restore();
     return "polygon";
   }
-}
 
-class Stage extends Rectangle {
+  drawPreview(currentX, currentY) {
+    if (this.points.length < 1) return;
+
+    const center = this.getCenter();
+    const rotatedPoints = this.points.map((point) =>
+      this.rotatePoint(point, this.rotation, center)
+    );
+    const rotatedCurrentPoint = this.rotatePoint(
+      { x: currentX, y: currentY },
+      this.rotation,
+      center
+    );
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(rotatedPoints[0].x, rotatedPoints[0].y);
+    for (let i = 1; i < rotatedPoints.length; i++) {
+      ctx.lineTo(rotatedPoints[i].x, rotatedPoints[i].y);
+    }
+    ctx.lineTo(rotatedCurrentPoint.x, rotatedCurrentPoint.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+class RectangleStage extends Rectangle {
   constructor({
     name = "Stage",
     x,
@@ -317,7 +380,7 @@ class Stage extends Rectangle {
   }
 
   static deserialize(data) {
-    return new Stage(data);
+    return new RectangleStage(data);
   }
 
   draw() {
@@ -326,9 +389,54 @@ class Stage extends Rectangle {
     ctx.font = `${this.width / 12}px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    ctx.fillStyle = "black";
+    ctx.fillStyle = "grey";
     ctx.fillText(this.name, this.x + this.width / 2, this.y + this.height / 2);
-    return "stage";
+    return "Stage";
+  }
+}
+class EllipseStage extends Ellipse {
+  constructor({
+    name = "Stage",
+    x,
+    y,
+    width,
+    height,
+    rotation = 0,
+    color = "#EFEFEF",
+  }) {
+    super({
+      x,
+      y,
+      width,
+      height,
+      rotation: rotation,
+      color: color,
+    });
+    this.type = "Stage";
+    this.name = name;
+  }
+
+  serialize() {
+    return {
+      ...super.serialize(),
+      type: this.type,
+      name: this.name,
+    };
+  }
+
+  static deserialize(data) {
+    return new EllipseStage(data);
+  }
+
+  draw() {
+    super.draw();
+
+    ctx.font = `${this.width / 12}px Arial`;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "grey";
+    ctx.fillText(this.name, this.x + this.width / 2, this.y + this.height / 2);
+    return "Stage";
   }
 }
 
@@ -418,7 +526,6 @@ class Area extends Rectangle {
     seatSpacing = 10,
     rotation = 0,
   }) {
-    console.log(this.x, this.y, startX, startY, rotation, this.rotation);
     const row = new Row({
       name,
       startX: startX - this.x,

@@ -11,7 +11,7 @@ class FirstTemplate {
   stage;
   area;
   getStage() {
-    this.stage = new Stage({
+    this.stage = new RectangleStage({
       name: "Stage",
       x: this.x + this.width / 3.2,
       y: this.y,

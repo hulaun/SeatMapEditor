@@ -14,6 +14,7 @@ let translateY = 0;
 const touchpadScalingFactor = 1.5;
 const seatRadius = 10;
 const seatSpacing = 10;
+let currentPolygon = null;
 let selectedShape = null;
 let zoomedArea = null;
 let offsetX, offsetY;

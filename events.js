@@ -1,5 +1,6 @@
 const insertArea = document.getElementById("insertArea");
 const insertRectangleStage = document.getElementById("insertRectangleStage");
+const insertEllipseStage = document.getElementById("insertEllipseStage");
 const insertStageDropDown = document.getElementById("insertStageDropDown");
 const insertSeats = document.getElementById("insertSeats");
 const insertGridSeats = document.getElementById("insertGridSeats");
@@ -41,12 +42,15 @@ function removeMainMapEventListeners() {
   canvas.removeEventListener("mousedown", startPanning);
   canvas.removeEventListener("mousemove", panCanvas);
   canvas.removeEventListener("mouseup", stopPanning);
+
+  canvas.removeEventListener("click", handleCanvasClick);
 }
 canvas.addEventListener("wheel", (event) => {
   handleWheel(event);
 });
 function mainMapReset() {
   selectedShape = null;
+  selectedType = "";
   removeMainMapEventListeners();
   drawAll();
 }
@@ -91,12 +95,24 @@ dropdownMenuButton.addEventListener("click", (event) => {
 
 insertRectangleStage.addEventListener("click", () => {
   mainMapReset();
+  selectedType = "Rectangle";
   insertStageDropDown.classList.toggle("show");
   canvas.addEventListener("mousedown", startStageDrawing);
 });
+insertEllipseStage.addEventListener("click", () => {
+  mainMapReset();
+  selectedType = "Ellipse";
+  canvas.addEventListener("mousedown", startStageDrawing);
+});
+// insertArea.addEventListener("click", () => {
+//   mainMapReset();
+//   canvas.addEventListener("mousedown", startAreaDrawing);
+// });
 insertArea.addEventListener("click", () => {
   mainMapReset();
-  canvas.addEventListener("mousedown", startAreaDrawing);
+  console.log("clicked");
+  canvas.addEventListener("mousemove", handleCanvasDraw);
+  canvas.addEventListener("click", handleCanvasClick);
 });
 
 selectButton.addEventListener("click", () => {

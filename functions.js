@@ -11,6 +11,46 @@ function setEditorContent(content) {
 }
 //--------Main menu functions---------
 //Area
+
+function handleCanvasClick(e) {
+  startX = e.clientX - translateX;
+  startY = e.clientY - translateY;
+  if (!currentPolygon) {
+    // Start a new polygon
+    currentPolygon = new Polygon();
+    currentPolygon.addPoint(startX, startY);
+    isDrawing = true;
+  } else {
+    currentPolygon.addPoint(startX, startY);
+    // Check if the polygon should close
+    if (currentPolygon.closePolygon()) {
+      startX = 0;
+      startY = 0;
+      secondX = 0;
+      secondY = 0;
+      // Add the polygon to the shapes array
+      shapes.push(currentPolygon);
+      currentPolygon = null;
+      isDrawing = false;
+      canvas.removeEventListener("click", handleCanvasClick);
+      canvas.removeEventListener("mousemove", handleCanvasDraw);
+    }
+  }
+  drawAll();
+  if (isDrawing) {
+    currentPolygon.drawPreview(secondX, secondY);
+  }
+}
+function handleCanvasDraw(e) {
+  if (!isDrawing || !currentPolygon || currentPolygon.points.length < 1) return;
+  secondX = e.clientX - translateX;
+  secondY = e.clientY - translateY;
+
+  // Draw the current polygon in progress
+  drawAll();
+  currentPolygon.drawPreview(secondX, secondY);
+}
+
 function startAreaDrawing(event) {
   startX = event.clientX - translateX;
   startY = event.clientY - translateY;
@@ -78,13 +118,23 @@ function drawStagePreview(event) {
   const height = currentY - startY;
 
   drawAll();
-  const tempRect = new Stage({
-    x: startX,
-    y: startY,
-    width: width,
-    height: height,
-  });
-  tempRect.draw();
+  if (selectedType === "Rectangle") {
+    const tempRect = new RectangleStage({
+      x: startX,
+      y: startY,
+      width: width,
+      height: height,
+    });
+    tempRect.draw();
+  } else if (selectedType === "Ellipse") {
+    const tempRect = new EllipseStage({
+      x: startX,
+      y: startY,
+      width: width,
+      height: height,
+    });
+    tempRect.draw();
+  }
 }
 
 function finishStageDrawing(event) {
@@ -99,13 +149,23 @@ function finishStageDrawing(event) {
   canvas.removeEventListener("mousemove", drawStagePreview);
   canvas.removeEventListener("mouseup", finishStageDrawing);
 
-  const finalRect = new Stage({
-    x: startX,
-    y: startY,
-    width: width,
-    height: height,
-  });
-  shapes.push(finalRect);
+  if (selectedType === "Rectangle") {
+    const finalRect = new RectangleStage({
+      x: startX,
+      y: startY,
+      width: width,
+      height: height,
+    });
+    shapes.push(finalRect);
+  } else if (selectedType === "Ellipse") {
+    const finalRect = new EllipseStage({
+      x: startX,
+      y: startY,
+      width: width,
+      height: height,
+    });
+    shapes.push(finalRect);
+  }
   saveCanvasState();
   drawAll();
 }
@@ -123,8 +183,23 @@ function selectShape(event) {
       } else {
         break;
       }
-    } else if (shapes[i] instanceof Stage) {
+    } else if (shapes[i] instanceof RectangleStage) {
       roundedRectangleEditor(shapes[i], mouseX, mouseY);
+      if (selectedShape == null) {
+        continue;
+      } else {
+        break;
+      }
+    } else if (shapes[i] instanceof EllipseStage) {
+      roundedRectangleEditor(shapes[i], mouseX, mouseY);
+      if (selectedShape == null) {
+        continue;
+      } else {
+        break;
+      }
+    } else if (shapes[i] instanceof Polygon) {
+      // roundedRectangleEditor(shapes[i], mouseX, mouseY);
+      console.log("it's a win");
       if (selectedShape == null) {
         continue;
       } else {
@@ -159,7 +234,7 @@ function dragShape(event) {
   }
 }
 
-function stopDragShape(event) {
+function stopDragShape() {
   if (selectedShape.type === "Row") {
     canvas.removeEventListener("mousemove", dragShape);
     canvas.removeEventListener("mouseup", stopDragShape);
@@ -229,7 +304,7 @@ function zoomInArea(event) {
   const mouseX = event.clientX - translateX;
   const mouseY = event.clientY - translateY;
   for (let i = shapes.length - 1; i >= 0; i--) {
-    if (shapes[i] instanceof Stage) continue;
+    if (shapes[i].type === "Stage") continue;
     if (shapes[i].isPointInside(mouseX, mouseY)) {
       zoomedArea = shapes[i];
       zoomInOnShape(shapes[i]);
