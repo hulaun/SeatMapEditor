@@ -249,11 +249,10 @@ function rowEditor(shape, mouseX, mouseY) {
       <br>
       <label for="rotation">Rotation (degrees):</label>
       <input type="range" id="rotation" min="0" max="360" step="1" value="${
-        shape.rotation || 0
+        (shape.rotation > 0 ? shape.rotation : 360 + shape.rotation) || 0
       }">
       <br>
     `);
-
     document.getElementById("shapeName").addEventListener("input", (e) => {
       shape.setRowName(e.target.value);
       saveAreaCanvasState();

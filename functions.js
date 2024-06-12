@@ -46,7 +46,6 @@ function handleCanvasDraw(e) {
   secondX = e.clientX - translateX;
   secondY = e.clientY - translateY;
 
-  // Draw the current polygon in progress
   drawAll();
   currentPolygon.drawPreview(secondX, secondY);
 }
@@ -198,8 +197,10 @@ function selectShape(event) {
         break;
       }
     } else if (shapes[i] instanceof Polygon) {
-      // roundedRectangleEditor(shapes[i], mouseX, mouseY);
-      console.log("it's a win");
+      if (shapes[i].isPointInside(mouseX, mouseY)) {
+        selectedShape = shapes[i];
+        canvas.addEventListener("mousedown", selectPoint);
+      }
       if (selectedShape == null) {
         continue;
       } else {
@@ -211,6 +212,31 @@ function selectShape(event) {
     mainEditor();
   }
   drawAll();
+}
+
+function selectPoint(event) {
+  const x = event.clientX - translateX;
+  const y = event.clientY - translateY;
+  selectedShape.selectedPointIndex = selectedShape.points.findIndex((point) => {
+    const distance = Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2);
+    return distance < 4;
+  });
+  if (selectedShape.selectedPointIndex !== null) {
+    canvas.addEventListener("mousemove", movePoint);
+    canvas.addEventListener("mouseup", stopEditingArea);
+  }
+}
+function movePoint(event) {
+  console.log(selectedShape.selectedPointIndex);
+
+  const x = event.clientX - translateX;
+  const y = event.clientY - translateY;
+  selectedShape.points[selectedShape.selectedPointIndex] = { x, y };
+  drawAll();
+}
+
+function stopEditingArea() {
+  selectedShape.selectedPointIndex = null;
 }
 
 function dragShape(event) {

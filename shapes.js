@@ -204,7 +204,7 @@ class Polygon extends Shape {
     super();
     this.type = "Polygon";
     this.points = [];
-    this.rotation = 0;
+    this.selectedPointIndex = null;
   }
 
   addPoint(x, y) {
@@ -218,30 +218,13 @@ class Polygon extends Shape {
       const distance = Math.sqrt(
         (firstPoint.x - lastPoint.x) ** 2 + (firstPoint.y - lastPoint.y) ** 2
       );
-
       if (distance < 10) {
         this.points.pop();
-        this.points.push(firstPoint); // Close the polygon by adding the first point to the end
+        this.getCenter();
         return true;
       }
     }
     return false;
-  }
-
-  setRotation(angle) {
-    this.rotation = angle * (Math.PI / 180); // Convert degrees to radians
-  }
-
-  rotatePoint(point, angle, center) {
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    const dx = point.x - center.x;
-    const dy = point.y - center.y;
-
-    return {
-      x: center.x + dx * cos - dy * sin,
-      y: center.y + dx * sin + dy * cos,
-    };
   }
 
   getCenter() {
@@ -253,11 +236,8 @@ class Polygon extends Shape {
       },
       { x: 0, y: 0 }
     );
-
-    return {
-      x: sum.x / this.points.length,
-      y: sum.y / this.points.length,
-    };
+    this.x = sum.x / this.points.length;
+    this.y = sum.y / this.points.length;
   }
 
   serialize() {
@@ -265,19 +245,24 @@ class Polygon extends Shape {
       ...super.serialize(),
       type: this.type,
       points: this.points,
-      rotation: this.rotation,
     };
   }
 
   static deserialize(data) {
     const polygon = new Polygon();
     polygon.points = data.points;
-    polygon.rotation = data.rotation;
     return polygon;
   }
 
   isPointInside(x, y) {
-    // Ray-casting algorithm to determine if point is inside polygon
+    for (let i = 0; i < this.points.length; i++) {
+      const point = this.points[i];
+      const distance = Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2);
+      if (distance <= 4) {
+        return true;
+      }
+    }
+
     let isInside = false;
     const points = this.points;
     for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
@@ -296,17 +281,13 @@ class Polygon extends Shape {
   draw() {
     if (this.points.length < 2) return;
 
-    const center = this.getCenter();
-    const rotatedPoints = this.points.map((point) =>
-      this.rotatePoint(point, this.rotation, center)
-    );
-
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(rotatedPoints[0].x, rotatedPoints[0].y);
-    for (let i = 1; i < rotatedPoints.length; i++) {
-      ctx.lineTo(rotatedPoints[i].x, rotatedPoints[i].y);
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(this.points[i].x, this.points[i].y);
     }
+    ctx.lineTo(this.points[0].x, this.points[0].y);
     ctx.closePath();
     ctx.stroke();
     ctx.fillStyle = "#EFEFEF"; // Fill color for the polygon
@@ -318,24 +299,25 @@ class Polygon extends Shape {
   drawPreview(currentX, currentY) {
     if (this.points.length < 1) return;
 
-    const center = this.getCenter();
-    const rotatedPoints = this.points.map((point) =>
-      this.rotatePoint(point, this.rotation, center)
-    );
-    const rotatedCurrentPoint = this.rotatePoint(
-      { x: currentX, y: currentY },
-      this.rotation,
-      center
-    );
-
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(rotatedPoints[0].x, rotatedPoints[0].y);
-    for (let i = 1; i < rotatedPoints.length; i++) {
-      ctx.lineTo(rotatedPoints[i].x, rotatedPoints[i].y);
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(this.points[i].x, this.points[i].y);
     }
-    ctx.lineTo(rotatedCurrentPoint.x, rotatedCurrentPoint.y);
+    ctx.lineTo(currentX, currentY); // Line to the current mouse position
     ctx.stroke();
+    ctx.restore();
+  }
+
+  drawPoints() {
+    ctx.save();
+    ctx.fillStyle = "black";
+    this.points.forEach((point) => {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
     ctx.restore();
   }
 }
@@ -440,6 +422,119 @@ class EllipseStage extends Ellipse {
   }
 }
 
+class PolygonArea extends Polygon {
+  constructor({ name = "Name", points = [], color = "white", shapes = null }) {
+    super();
+    this.type = "Area";
+    this.name = name;
+    this.points = points;
+    this.color = color;
+    this.shapes = shapes ?? [];
+  }
+
+  serialize() {
+    return {
+      ...super.serialize(),
+      type: this.type,
+      name: this.name,
+      color: this.color,
+      shapes: this.shapes.map((shape) => shape.serialize()),
+    };
+  }
+
+  static deserialize(data) {
+    const polygonArea = new PolygonArea(data);
+    polygonArea.shapes = data.shapes.map((shapeData) => {
+      switch (shapeData.type) {
+        case "Row":
+          return Row.deserialize(shapeData, polygonArea);
+        case "Text":
+          return Text.deserialize(shapeData);
+        default:
+          throw new Error(`Unknown shape type: ${shapeData.type}`);
+      }
+    });
+    return polygonArea;
+  }
+
+  addShape(shape) {
+    shape.area = this;
+    this.shapes.push(shape);
+  }
+
+  draw(isZoomed = false) {
+    super.draw();
+    ctx.font = `${this.getBoundingRadius() / 6}px Arial`;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "lightgrey";
+    const { x, y } = this.getCenter();
+    ctx.fillText(this.name, x, y);
+    if (isZoomed) {
+      this.shapes.forEach((shape) => {
+        shape.draw();
+      });
+    }
+    return "polygonArea";
+  }
+
+  getBoundingRadius() {
+    const center = this.getCenter();
+    return this.points.reduce((max, point) => {
+      const distance = Math.sqrt(
+        (point.x - center.x) ** 2 + (point.y - center.y) ** 2
+      );
+      return Math.max(max, distance);
+    }, 0);
+  }
+
+  createRow({ name = "", startX, startY, seatRadius, seatSpacing = 10 }) {
+    const row = new Row({
+      name,
+      startX,
+      startY,
+      seatRadius,
+      seatSpacing,
+      area: this,
+    });
+    return row;
+  }
+
+  createSeatsForRow({
+    name,
+    startX,
+    startY,
+    seatRadius,
+    numberOfSeats,
+    seatSpacing = 10,
+  }) {
+    const row = this.createRow({
+      name,
+      startX,
+      startY,
+      seatRadius,
+      seatSpacing,
+      area: this,
+    });
+
+    for (let seatIndex = 0; seatIndex < numberOfSeats; seatIndex++) {
+      row.createSeat({
+        number: seatIndex + 1,
+        isBuyed: false,
+      });
+    }
+    this.addShape(row);
+  }
+
+  updateChildren() {
+    this.shapes.forEach((shape) => {
+      shape.area = this;
+      if (shape.type === "Row") {
+        shape.updateChildren();
+      }
+    });
+  }
+}
 class Area extends Rectangle {
   constructor({
     name = "Name",
@@ -727,16 +822,7 @@ class Row {
     return row;
   }
 
-  getAbsoluteCoordinates() {
-    if (!this.area) return { x: this.startX, y: this.startY };
-    return {
-      x: this.area.x + this.startX,
-      y: this.area.y + this.startY,
-    };
-  }
-
   isPointInside(x, y) {
-    const { x: absX, y: absY } = this.getAbsoluteCoordinates();
     const totalWidth =
       (this.seats.length - 1) * (this.seatRadius * 2 + this.seatSpacing) +
       this.seatRadius * 2;
@@ -767,13 +853,6 @@ class Row {
     this.seats.push(seat);
   }
 
-  getAreaCenter() {
-    return {
-      x: this.area.x + this.area.width / 2,
-      y: this.area.y + this.area.height / 2,
-    };
-  }
-
   createSeat({ number, isBuyed = false }) {
     const x = this.seats.length * (this.seatRadius * 2 + this.seatSpacing);
     const y = 0;
@@ -789,20 +868,17 @@ class Row {
   }
 
   draw() {
-    const { x: absX, y: absY } = this.getAbsoluteCoordinates();
     ctx.save();
     ctx.translate(this.startX + this.area.x, this.startY + this.area.y);
     ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
     ctx.translate(-(this.startX + this.area.x), -(this.startY + this.area.y));
 
-    console.log(this.seats);
     this.seats.forEach((seat) => seat.draw());
 
     ctx.restore();
   }
 
   drawBoundingRectangle() {
-    const { x: absX, y: absY } = this.getAbsoluteCoordinates();
     ctx.save();
     ctx.translate(this.startX + this.area.x, this.startY + this.area.y);
     ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
@@ -908,30 +984,53 @@ class Seat {
   }
 
   isPointInside(x, y) {
-    const seatCenterX = this.x + this.row.startX + this.row.area.x;
-    const seatCenterY = this.y + this.row.startY + this.row.area.y;
+    // Translate the point back to the origin
+    const translatedX = x - (this.row.startX + this.row.area.x);
+    const translatedY = y - (this.row.startY + this.row.area.y);
 
-    // Calculate the distance between the point and the seat's center
-    const distance = Math.sqrt((x - seatCenterX) ** 2 + (y - seatCenterY) ** 2);
+    // Rotate the point back by the negative of the row's rotation
+    const rotationRad =
+      -((this.row.rotation + this.row.area.rotation) * Math.PI) / 180;
+    const unrotatedX =
+      translatedX * Math.cos(rotationRad) - translatedY * Math.sin(rotationRad);
+    const unrotatedY =
+      translatedX * Math.sin(rotationRad) + translatedY * Math.cos(rotationRad);
+
+    // Translate the seat center to the unrotated coordinate system
+    const seatCenterX = this.x;
+    const seatCenterY = this.y;
+
+    // Calculate the distance between the unrotated point and the seat's center
+    const distance = Math.sqrt(
+      (unrotatedX - seatCenterX) ** 2 + (unrotatedY - seatCenterY) ** 2
+    );
 
     // Check if the distance is less than or equal to the seat's radius
     return distance <= this.radius;
   }
 
   drawBoundingRectangle() {
-    const seatCenterX = this.x + this.row.startX + this.row.area.x;
-    const seatCenterY = this.y + this.row.startY + this.row.area.y;
-    const rectX = seatCenterX - this.radius - 2;
-    const rectY = seatCenterY - this.radius - 2;
     const rectWidth = this.radius * 2 + 4;
     const rectHeight = this.radius * 2 + 4;
 
     ctx.save();
 
+    // Translate to the row's position
+    ctx.translate(
+      this.row.startX + this.row.area.x,
+      this.row.startY + this.row.area.y
+    );
+
+    // Rotate the context to match the row's rotation
+    const rotationRad =
+      ((this.row.rotation + this.row.area.rotation) * Math.PI) / 180;
+    ctx.rotate(rotationRad);
+
+    // Draw the rectangle at the transformed position
+    ctx.translate(this.x, this.y); // Translate to the seat position relative to the row
     ctx.strokeStyle = "black";
     ctx.setLineDash([5, 3]);
-
-    ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+    ctx.strokeRect(-this.radius - 2, -this.radius - 2, rectWidth, rectHeight); // Draw the rectangle centered at the seat
 
     ctx.restore();
   }

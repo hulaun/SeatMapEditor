@@ -46,8 +46,13 @@ function drawAll() {
           }
         }
       } else if (shape === selectedShape) {
-        ctx.strokeStyle = "red";
-        shape.draw();
+        if (shape.type === "Polygon") {
+          shape.draw();
+          shape.drawPoints();
+        } else {
+          ctx.strokeStyle = "red";
+          shape.draw();
+        }
       } else {
         ctx.strokeStyle = "black";
         shape.draw();

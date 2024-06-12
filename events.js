@@ -42,6 +42,9 @@ function removeMainMapEventListeners() {
   canvas.removeEventListener("mousedown", startPanning);
   canvas.removeEventListener("mousemove", panCanvas);
   canvas.removeEventListener("mouseup", stopPanning);
+  canvas.removeEventListener("mousedown", selectPoint);
+  canvas.removeEventListener("mousemove", movePoint);
+  canvas.removeEventListener("mouseup", stopEditingArea);
 
   canvas.removeEventListener("click", handleCanvasClick);
 }
@@ -110,7 +113,6 @@ insertEllipseStage.addEventListener("click", () => {
 // });
 insertArea.addEventListener("click", () => {
   mainMapReset();
-  console.log("clicked");
   canvas.addEventListener("mousemove", handleCanvasDraw);
   canvas.addEventListener("click", handleCanvasClick);
 });
