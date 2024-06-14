@@ -200,11 +200,24 @@ class Ellipse extends Shape {
   }
 }
 class Polygon extends Shape {
-  constructor() {
+  constructor({
+    points = [],
+    color = "#EFEFEF",
+    selectedPointIndex = null,
+    x = 0,
+    y = 0,
+    furthestX = 0,
+    furthestY = 0,
+  }) {
     super();
     this.type = "Polygon";
-    this.points = [];
-    this.selectedPointIndex = null;
+    this.points = points;
+    this.color = color;
+    this.selectedPointIndex = selectedPointIndex;
+    this.x = x;
+    this.y = y;
+    this.furthestX = furthestX;
+    this.furthestY = furthestY;
   }
 
   addPoint(x, y) {
@@ -221,10 +234,80 @@ class Polygon extends Shape {
       if (distance < 10) {
         this.points.pop();
         this.getCenter();
+        this.calculateFurthestCoordinates();
+        this.setOffsetPoints();
         return true;
       }
     }
     return false;
+  }
+
+  mirrorVertically() {
+    this.points = this.points.map((point) => {
+      return {
+        ...point,
+        y: this.y + (this.y - point.y),
+      };
+    });
+    this.setOffsetPoints();
+  }
+
+  mirrorHorizontally() {
+    this.points = this.points.map((point) => {
+      return {
+        ...point,
+        x: this.x + (this.x - point.x),
+      };
+    });
+    this.setOffsetPoints();
+  }
+
+  setOffsetPoints() {
+    this.points = this.points.map((point) => {
+      return {
+        ...point,
+        offsetX: point.x - this.x,
+        offsetY: point.y - this.y,
+      };
+    });
+  }
+
+  updatePoints() {
+    this.points = this.points.map((point) => {
+      return {
+        ...point,
+        x: point.offsetX + this.x,
+        y: point.offsetY + this.y,
+      };
+    });
+  }
+
+  zoomShape(ratio) {
+    this.points = this.points.map((point) => {
+      return {
+        offsetX: point.offsetX * ratio,
+        offsetY: point.offsetY * ratio,
+        x: point.offsetX * ratio + this.x,
+        y: point.offsetY * ratio + this.y,
+      };
+    });
+  }
+
+  calculateFurthestCoordinates() {
+    if (this.points.length === 0) return { furthestX: 0, furthestY: 0 };
+
+    let furthestX = 0;
+    let furthestY = 0;
+
+    this.points.forEach((point) => {
+      const deltaX = Math.abs(point.x - this.x);
+      const deltaY = Math.abs(point.y - this.y);
+      if (deltaX > furthestX) furthestX = deltaX;
+      if (deltaY > furthestY) furthestY = deltaY;
+    });
+
+    this.furthestX = furthestX;
+    this.furthestY = furthestY;
   }
 
   getCenter() {
@@ -245,12 +328,16 @@ class Polygon extends Shape {
       ...super.serialize(),
       type: this.type,
       points: this.points,
+      color: this.color,
+      x: this.x,
+      y: this.y,
+      furthestX: this.furthestX,
+      furthestY: this.furthestY,
     };
   }
 
   static deserialize(data) {
-    const polygon = new Polygon();
-    polygon.points = data.points;
+    const polygon = new Polygon(data);
     return polygon;
   }
 
@@ -278,6 +365,17 @@ class Polygon extends Shape {
     return isInside;
   }
 
+  isPointInsidePoints(x, y) {
+    for (let i = 0; i < this.points.length; i++) {
+      const point = this.points[i];
+      const distance = Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2);
+      if (distance <= 4) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   draw() {
     if (this.points.length < 2) return;
 
@@ -290,7 +388,7 @@ class Polygon extends Shape {
     ctx.lineTo(this.points[0].x, this.points[0].y);
     ctx.closePath();
     ctx.stroke();
-    ctx.fillStyle = "#EFEFEF"; // Fill color for the polygon
+    ctx.fillStyle = this.color;
     ctx.fill();
     ctx.restore();
     return "polygon";
@@ -305,7 +403,7 @@ class Polygon extends Shape {
     for (let i = 1; i < this.points.length; i++) {
       ctx.lineTo(this.points[i].x, this.points[i].y);
     }
-    ctx.lineTo(currentX, currentY); // Line to the current mouse position
+    ctx.lineTo(currentX, currentY);
     ctx.stroke();
     ctx.restore();
   }
@@ -349,7 +447,7 @@ class RectangleStage extends Rectangle {
       rotation: rotation,
       color: color,
     });
-    this.type = "Stage";
+    this.type = "RectangleStage";
     this.name = name;
   }
 
@@ -394,7 +492,7 @@ class EllipseStage extends Ellipse {
       rotation: rotation,
       color: color,
     });
-    this.type = "Stage";
+    this.type = "EllipseStage";
     this.name = name;
   }
 
@@ -423,12 +521,27 @@ class EllipseStage extends Ellipse {
 }
 
 class PolygonArea extends Polygon {
-  constructor({ name = "Name", points = [], color = "white", shapes = null }) {
-    super();
-    this.type = "Area";
-    this.name = name;
+  constructor({
+    name = "A2",
+    points = [],
+    shapes = null,
+    color = "#EFEFEF",
+    selectedPointIndex = null,
+    x = 0,
+    y = 0,
+    furthestX = 0,
+    furthestY = 0,
+  }) {
+    super(points, color, selectedPointIndex, x, y, furthestX, furthestY);
     this.points = points;
     this.color = color;
+    this.selectedPointIndex = selectedPointIndex;
+    this.x = x;
+    this.y = y;
+    this.furthestX = furthestX;
+    this.furthestY = furthestY;
+    this.type = "Area";
+    this.name = name;
     this.shapes = shapes ?? [];
   }
 
@@ -437,7 +550,6 @@ class PolygonArea extends Polygon {
       ...super.serialize(),
       type: this.type,
       name: this.name,
-      color: this.color,
       shapes: this.shapes.map((shape) => shape.serialize()),
     };
   }
@@ -464,12 +576,11 @@ class PolygonArea extends Polygon {
 
   draw(isZoomed = false) {
     super.draw();
-    ctx.font = `${this.getBoundingRadius() / 6}px Arial`;
+    ctx.font = `16px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
     ctx.fillStyle = "lightgrey";
-    const { x, y } = this.getCenter();
-    ctx.fillText(this.name, x, y);
+    ctx.fillText(this.name, this.x, this.y);
     if (isZoomed) {
       this.shapes.forEach((shape) => {
         shape.draw();
@@ -478,139 +589,32 @@ class PolygonArea extends Polygon {
     return "polygonArea";
   }
 
-  getBoundingRadius() {
-    const center = this.getCenter();
-    return this.points.reduce((max, point) => {
-      const distance = Math.sqrt(
-        (point.x - center.x) ** 2 + (point.y - center.y) ** 2
-      );
-      return Math.max(max, distance);
-    }, 0);
-  }
+  mirrorVertically() {
+    super.mirrorVertically();
 
-  createRow({ name = "", startX, startY, seatRadius, seatSpacing = 10 }) {
-    const row = new Row({
-      name,
-      startX,
-      startY,
-      seatRadius,
-      seatSpacing,
-      area: this,
-    });
-    return row;
-  }
-
-  createSeatsForRow({
-    name,
-    startX,
-    startY,
-    seatRadius,
-    numberOfSeats,
-    seatSpacing = 10,
-  }) {
-    const row = this.createRow({
-      name,
-      startX,
-      startY,
-      seatRadius,
-      seatSpacing,
-      area: this,
-    });
-
-    for (let seatIndex = 0; seatIndex < numberOfSeats; seatIndex++) {
-      row.createSeat({
-        number: seatIndex + 1,
-        isBuyed: false,
-      });
-    }
-    this.addShape(row);
-  }
-
-  updateChildren() {
     this.shapes.forEach((shape) => {
-      shape.area = this;
-      if (shape.type === "Row") {
-        shape.updateChildren();
+      if (shape instanceof Text) {
+        shape.y = -shape.y;
+        shape.rotation = (360 - shape.rotation) % 360;
+      } else if (shape instanceof Row) {
+        shape.startY = -shape.startY;
+        shape.rotation = (360 - shape.rotation) % 360;
       }
     });
   }
-}
-class Area extends Rectangle {
-  constructor({
-    name = "Name",
-    x,
-    y,
-    width,
-    height,
-    topLeftBorderRadius = 0,
-    topRightBorderRadius = 0,
-    bottomLeftBorderRadius = 0,
-    bottomRightBorderRadius = 0,
-    borderRadius = 0,
-    color = "white",
-    rotation = 0,
-    shapes = null,
-  }) {
-    super({
-      x,
-      y,
-      width,
-      height,
-      borderRadius,
-      topLeftBorderRadius: topLeftBorderRadius,
-      topRightBorderRadius: topRightBorderRadius,
-      bottomLeftBorderRadius: bottomLeftBorderRadius,
-      bottomRightBorderRadius: bottomRightBorderRadius,
-      color,
-      rotation,
-    });
-    this.type = "Area";
-    this.name = name;
-    this.shapes = shapes ?? [];
-  }
 
-  serialize() {
-    return {
-      ...super.serialize(),
-      type: this.type,
-      name: this.name,
-      shapes: this.shapes.map((shape) => shape.serialize()),
-    };
-  }
+  mirrorHorizontally() {
+    super.mirrorHorizontally();
 
-  static deserialize(data) {
-    const area = new Area(data);
-    area.shapes = data.shapes.map((shapeData) => {
-      switch (shapeData.type) {
-        case "Row":
-          return Row.deserialize(shapeData, area);
-        case "Text":
-          return Text.deserialize(shapeData);
-        default:
-          throw new Error(`Unknown shape type: ${shapeData.type}`);
+    this.shapes.forEach((shape) => {
+      if (shape instanceof Text) {
+        shape.x = -shape.x;
+        shape.rotation = (180 - shape.rotation) % 360;
+      } else if (shape instanceof Row) {
+        shape.startX = -shape.startX;
+        shape.rotation = (180 - shape.rotation) % 360;
       }
     });
-    return area;
-  }
-
-  addShape(shape) {
-    shape.area = this;
-    this.shapes.push(shape);
-  }
-
-  draw(isZoomed = false) {
-    super.draw();
-    ctx.font = `${this.width / 12}px Arial`;
-    ctx.textBaseline = "middle";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "lightgrey";
-    ctx.fillText(this.name, this.x + this.width / 2, this.y + this.height / 2);
-    if (isZoomed) {
-      this.shapes.forEach((shape) => {
-        shape.draw();
-      });
-    }
-    return "area";
   }
 
   createRow({
@@ -618,17 +622,18 @@ class Area extends Rectangle {
     startX,
     startY,
     seatRadius,
+    rotation,
     seatSpacing = 10,
-    rotation = 0,
   }) {
+    console.log(this.x, this.y);
     const row = new Row({
       name,
       startX: startX - this.x,
       startY: startY - this.y,
       seatRadius,
       seatSpacing,
-      rotation: rotation - this.rotation,
       area: this,
+      rotation: rotation,
     });
     return row;
   }
@@ -639,8 +644,8 @@ class Area extends Rectangle {
     startY,
     seatRadius,
     numberOfSeats,
-    seatSpacing = 10,
     rotation,
+    seatSpacing = 10,
   }) {
     const row = this.createRow({
       name,
@@ -710,12 +715,10 @@ class Text {
 
   draw() {
     ctx.save();
-    const areaCenterX = this.area.x + this.area.width / 2;
-    const areaCenterY = this.area.y + this.area.height / 2;
 
-    ctx.translate(areaCenterX, areaCenterY);
-    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
-    ctx.translate(-areaCenterX, -areaCenterY);
+    ctx.translate(this.x + this.area.x, this.y + this.area.y);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.translate(-(this.x + this.area.x), -(this.y + this.area.y));
 
     ctx.font = `${this.fontSize}px ${this.fontFamily}`;
     ctx.fillStyle = this.color;
@@ -727,31 +730,24 @@ class Text {
 
   isPointInside(x, y) {
     ctx.save();
-    const areaCenterX = this.area.x + this.area.width / 2;
-    const areaCenterY = this.area.y + this.area.height / 2;
-
-    ctx.translate(areaCenterX, areaCenterY);
-    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
-    ctx.translate(-areaCenterX, -areaCenterY);
+    ctx.translate(this.x + this.area.x, this.y + this.area.y);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.translate(-(this.x + this.area.x), -(this.y + this.area.y));
 
     ctx.font = `${this.fontSize}px ${this.fontFamily}`;
     const textWidth = ctx.measureText(this.content).width;
     const textHeight = this.fontSize;
     const localX = x - (this.x + this.area.x);
     const localY = y - (this.y + this.area.y);
-    const cosR = Math.cos(
-      (-(this.rotation + this.area.rotation) * Math.PI) / 180
-    );
-    const sinR = Math.sin(
-      (-(this.rotation + this.area.rotation) * Math.PI) / 180
-    );
-    const rotatedX = localX * cosR - localY * sinR + (this.x + this.area.x);
-    const rotatedY = localX * sinR + localY * cosR + (this.y + this.area.y);
+    const cosR = Math.cos((-this.rotation * Math.PI) / 180);
+    const sinR = Math.sin((-this.rotation * Math.PI) / 180);
+    const rotatedX = localX * cosR - localY * sinR + this.x;
+    const rotatedY = localX * sinR + localY * cosR + this.y;
     const isInside =
-      rotatedX >= this.x + this.area.x - textWidth / 2 &&
-      rotatedX <= this.x + this.area.x + textWidth / 2 &&
-      rotatedY >= this.y + this.area.y - textHeight / 2 &&
-      rotatedY <= this.y + this.area.y + textHeight / 2;
+      rotatedX >= this.x - textWidth / 2 &&
+      rotatedX <= this.x + textWidth / 2 &&
+      rotatedY >= this.y - textHeight / 2 &&
+      rotatedY <= this.y + textHeight / 2;
     ctx.restore();
     return isInside;
   }
@@ -760,12 +756,9 @@ class Text {
     const textWidth = ctx.measureText(this.content).width;
     const textHeight = this.fontSize;
     ctx.save();
-    const areaCenterX = this.area.x + this.area.width / 2;
-    const areaCenterY = this.area.y + this.area.height / 2;
-
-    ctx.translate(areaCenterX, areaCenterY);
-    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
-    ctx.translate(-areaCenterX, -areaCenterY);
+    ctx.translate(this.x + this.area.x, this.y + this.area.y);
+    ctx.rotate((this.rotation * Math.PI) / 180);
+    ctx.translate(-(this.x + this.area.x), -(this.y + this.area.y));
 
     ctx.strokeStyle = "black";
     ctx.setLineDash([5, 3]);
@@ -832,8 +825,7 @@ class Row {
     const translatedX = x - (this.startX + this.area.x);
     const translatedY = y - (this.startY + this.area.y);
 
-    const rotationRadians =
-      ((this.rotation + this.area.rotation) * Math.PI) / 180;
+    const rotationRadians = (this.rotation * Math.PI) / 180;
 
     const cosR = Math.cos(-rotationRadians);
     const sinR = Math.sin(-rotationRadians);
@@ -870,7 +862,7 @@ class Row {
   draw() {
     ctx.save();
     ctx.translate(this.startX + this.area.x, this.startY + this.area.y);
-    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
+    ctx.rotate((this.rotation * Math.PI) / 180);
     ctx.translate(-(this.startX + this.area.x), -(this.startY + this.area.y));
 
     this.seats.forEach((seat) => seat.draw());
@@ -881,7 +873,7 @@ class Row {
   drawBoundingRectangle() {
     ctx.save();
     ctx.translate(this.startX + this.area.x, this.startY + this.area.y);
-    ctx.rotate(((this.rotation + this.area.rotation) * Math.PI) / 180);
+    ctx.rotate((this.rotation * Math.PI) / 180);
     ctx.translate(-(this.startX + this.area.x), -(this.startY + this.area.y));
 
     const totalWidth =
@@ -989,8 +981,7 @@ class Seat {
     const translatedY = y - (this.row.startY + this.row.area.y);
 
     // Rotate the point back by the negative of the row's rotation
-    const rotationRad =
-      -((this.row.rotation + this.row.area.rotation) * Math.PI) / 180;
+    const rotationRad = -(this.row.rotation * Math.PI) / 180;
     const unrotatedX =
       translatedX * Math.cos(rotationRad) - translatedY * Math.sin(rotationRad);
     const unrotatedY =
@@ -1022,8 +1013,7 @@ class Seat {
     );
 
     // Rotate the context to match the row's rotation
-    const rotationRad =
-      ((this.row.rotation + this.row.area.rotation) * Math.PI) / 180;
+    const rotationRad = (this.row.rotation * Math.PI) / 180;
     ctx.rotate(rotationRad);
 
     // Draw the rectangle at the transformed position

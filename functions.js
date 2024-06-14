@@ -12,12 +12,12 @@ function setEditorContent(content) {
 //--------Main menu functions---------
 //Area
 
-function handleCanvasClick(e) {
+function addNewArea(e) {
   startX = e.clientX - translateX;
   startY = e.clientY - translateY;
   if (!currentPolygon) {
     // Start a new polygon
-    currentPolygon = new Polygon();
+    currentPolygon = new PolygonArea(name);
     currentPolygon.addPoint(startX, startY);
     isDrawing = true;
   } else {
@@ -32,7 +32,7 @@ function handleCanvasClick(e) {
       shapes.push(currentPolygon);
       currentPolygon = null;
       isDrawing = false;
-      canvas.removeEventListener("click", handleCanvasClick);
+      canvas.removeEventListener("click", addNewArea);
       canvas.removeEventListener("mousemove", handleCanvasDraw);
     }
   }
@@ -50,55 +50,6 @@ function handleCanvasDraw(e) {
   currentPolygon.drawPreview(secondX, secondY);
 }
 
-function startAreaDrawing(event) {
-  startX = event.clientX - translateX;
-  startY = event.clientY - translateY;
-  isDrawing = true;
-  canvas.addEventListener("mousemove", drawAreaPreview);
-  canvas.addEventListener("mouseup", finishAreaDrawing);
-}
-
-function drawAreaPreview(event) {
-  if (!isDrawing) return;
-
-  const currentX = event.clientX - translateX;
-  const currentY = event.clientY - translateY;
-  const width = currentX - startX;
-  const height = currentY - startY;
-
-  drawAll();
-  const tempRect = new Rectangle({
-    x: startX,
-    y: startY,
-    width: width,
-    height: height,
-  });
-  tempRect.draw();
-}
-
-function finishAreaDrawing(event) {
-  if (!isDrawing) return;
-
-  const endX = event.clientX - translateX;
-  const endY = event.clientY - translateY;
-  const width = endX - startX;
-  const height = endY - startY;
-
-  isDrawing = false;
-  canvas.removeEventListener("mousemove", drawAreaPreview);
-  canvas.removeEventListener("mouseup", finishAreaDrawing);
-
-  const finalRect = new Area({
-    x: startX,
-    y: startY,
-    width: width,
-    height: height,
-  });
-  shapes.push(finalRect);
-  saveCanvasState();
-  mainEditor();
-  drawAll();
-}
 //Stage
 function startStageDrawing(event) {
   startX = event.clientX - translateX;
@@ -155,6 +106,7 @@ function finishStageDrawing(event) {
       width: width,
       height: height,
     });
+    if (finalRect.width < 10 || finalRect.height < 10) return;
     shapes.push(finalRect);
   } else if (selectedType === "Ellipse") {
     const finalRect = new EllipseStage({
@@ -163,6 +115,7 @@ function finishStageDrawing(event) {
       width: width,
       height: height,
     });
+    if (finalRect.width < 10 || finalRect.height < 10) return;
     shapes.push(finalRect);
   }
   saveCanvasState();
@@ -175,46 +128,46 @@ function selectShape(event) {
 
   selectedShape = null;
   for (let i = shapes.length - 1; i >= 0; i--) {
-    if (shapes[i] instanceof Area) {
-      roundedRectangleEditor(shapes[i], mouseX, mouseY);
+    if (shapes[i].type === "Area") {
+      polygonAreaEditor(shapes[i], mouseX, mouseY);
       if (selectedShape == null) {
         continue;
       } else {
         break;
       }
     } else if (shapes[i] instanceof RectangleStage) {
-      roundedRectangleEditor(shapes[i], mouseX, mouseY);
+      rectangleStageEditor(shapes[i], mouseX, mouseY);
       if (selectedShape == null) {
         continue;
       } else {
+        canvas.removeEventListener("mousedown", selectPoint);
+        canvas.removeEventListener("mousemove", movePoint);
+        canvas.removeEventListener("mouseup", stopEditingArea);
         break;
       }
     } else if (shapes[i] instanceof EllipseStage) {
-      roundedRectangleEditor(shapes[i], mouseX, mouseY);
+      ellipseStageEditor(shapes[i], mouseX, mouseY);
       if (selectedShape == null) {
         continue;
       } else {
-        break;
-      }
-    } else if (shapes[i] instanceof Polygon) {
-      if (shapes[i].isPointInside(mouseX, mouseY)) {
-        selectedShape = shapes[i];
-        canvas.addEventListener("mousedown", selectPoint);
-      }
-      if (selectedShape == null) {
-        continue;
-      } else {
+        canvas.removeEventListener("mousedown", selectPoint);
+        canvas.removeEventListener("mousemove", movePoint);
+        canvas.removeEventListener("mouseup", stopEditingArea);
         break;
       }
     }
   }
   if (selectedShape === null) {
     mainEditor();
+    canvas.removeEventListener("mousedown", selectPoint);
+    canvas.removeEventListener("mousemove", movePoint);
+    canvas.removeEventListener("mouseup", stopEditingArea);
   }
   drawAll();
 }
 
 function selectPoint(event) {
+  console.log(selectedShape);
   const x = event.clientX - translateX;
   const y = event.clientY - translateY;
   selectedShape.selectedPointIndex = selectedShape.points.findIndex((point) => {
@@ -227,11 +180,11 @@ function selectPoint(event) {
   }
 }
 function movePoint(event) {
-  console.log(selectedShape.selectedPointIndex);
-
   const x = event.clientX - translateX;
   const y = event.clientY - translateY;
   selectedShape.points[selectedShape.selectedPointIndex] = { x, y };
+  selectedShape.setOffsetPoints();
+  selectedShape.calculateFurthestCoordinates();
   drawAll();
 }
 
@@ -250,6 +203,12 @@ function dragShape(event) {
       const mouseY = event.clientY - translateY;
       selectedShape.x = mouseX - offsetX;
       selectedShape.y = mouseY - offsetY;
+    } else if (selectedShape.type === "Area") {
+      const mouseX = event.clientX - translateX;
+      const mouseY = event.clientY - translateY;
+      selectedShape.x = mouseX - offsetX;
+      selectedShape.y = mouseY - offsetY;
+      selectedShape.updatePoints();
     } else {
       const mouseX = event.clientX - translateX;
       const mouseY = event.clientY - translateY;
@@ -341,34 +300,60 @@ function zoomInArea(event) {
   }
 }
 
-function zoomInOnShape(shape) {
+// function zoomInOnShape(shape) {
+//   saveCanvasState();
+//   shapes.forEach((s) => (s.isHidden = s !== shape));
+
+//   let zoomedWidth, zoomedHeight;
+
+//   if (shape.height > shape.width) {
+//     zoomedHeight = window.innerHeight / 1.7;
+//     zoomedWidth = (shape.width * zoomedHeight) / shape.height;
+//   } else {
+//     zoomedWidth = window.innerWidth / 1.7;
+//     zoomedHeight = (shape.height * zoomedWidth) / shape.width;
+//   }
+//   const centerX = window.innerWidth / 2;
+//   const centerY = window.innerHeight / 2;
+//   const newX = centerX - zoomedWidth / 1.5;
+//   const newY = centerY - zoomedHeight / 2;
+
+//   shape.width = zoomedWidth;
+//   shape.height = zoomedHeight;
+//   shape.x = newX - translateX;
+//   shape.y = newY - translateY;
+
+//   areaEditor();
+//   drawAll();
+//   saveAreaCanvasState();
+// }
+function zoomInOnShape(polygon) {
   saveCanvasState();
-  shapes.forEach((s) => (s.isHidden = s !== shape));
+  shapes.forEach((s) => (s.isHidden = s !== polygon));
 
-  let zoomedWidth, zoomedHeight;
+  // Calculate the zoomed dimensions based on the furthest x and y
+  let zoomedRatio;
 
-  if (shape.height > shape.width) {
-    zoomedHeight = window.innerHeight / 1.7;
-    zoomedWidth = (shape.width * zoomedHeight) / shape.height;
+  const furthestX = polygon.furthestX;
+  const furthestY = polygon.furthestY;
+
+  if (furthestY > furthestX) {
+    zoomedRatio = window.innerHeight / (polygon.furthestY * 2);
   } else {
-    zoomedWidth = window.innerWidth / 1.7;
-    zoomedHeight = (shape.height * zoomedWidth) / shape.width;
+    zoomedRatio = window.innerWidth / (polygon.furthestX * 2);
   }
-  const centerX = window.innerWidth / 2;
-  const centerY = window.innerHeight / 2;
-  const newX = centerX - zoomedWidth / 1.5;
-  const newY = centerY - zoomedHeight / 2;
 
-  shape.width = zoomedWidth;
-  shape.height = zoomedHeight;
-  shape.x = newX - translateX;
-  shape.y = newY - translateY;
+  polygon.x = window.innerWidth / 3 - translateX;
+  polygon.y = window.innerHeight / 2 - translateY;
+  polygon.zoomShape(zoomedRatio * 0.7);
+  polygon.calculateFurthestCoordinates();
+
+  // Scale the offset values
 
   areaEditor();
   drawAll();
   saveAreaCanvasState();
 }
-
 //---------Area functions----------
 
 //Seats
@@ -478,10 +463,9 @@ function finishSeatDrawing(event) {
 
   canvas.removeEventListener("mousemove", drawSeatPreview);
   canvas.removeEventListener("click", finishSeatDrawing);
-
   const endX = event.clientX - translateX;
   const endY = event.clientY - translateY;
-
+  zoomedArea;
   if (selectedType === "row") {
     const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
     const totalWidth = Math.sqrt(

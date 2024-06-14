@@ -46,7 +46,8 @@ function drawAll() {
           }
         }
       } else if (shape === selectedShape) {
-        if (shape.type === "Polygon") {
+        if (shape.type === "Area") {
+          ctx.strokeStyle = "red";
           shape.draw();
           shape.drawPoints();
         } else {
@@ -84,6 +85,7 @@ function saveCanvasState() {
 
   canvasStates.push(state);
   currentStateIndex++;
+  console.log(state.shapes);
 }
 
 function updateCurrentCanvasState() {
@@ -111,10 +113,12 @@ function restoreCanvasState(index) {
 
   shapes = state.shapes.map((shapeData) => {
     switch (shapeData.type) {
-      case "Stage":
-        return Stage.deserialize(shapeData);
+      case "RectangleStage":
+        return RectangleStage.deserialize(shapeData);
+      case "EllipseStage":
+        return EllipseStage.deserialize(shapeData);
       case "Area":
-        return Area.deserialize(shapeData);
+        return PolygonArea.deserialize(shapeData);
       default:
         throw new Error("Unknown shape type: " + shapeData.type);
     }
@@ -167,7 +171,7 @@ function restoreAreaCanvasState(index) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  var map = new FirstTemplate(ctx, 100, 300, 700, 800);
+  var map = new FirstTemplate(100, 300, 700, 800);
   shapes = [...shapes, ...map.shapes];
   drawAll();
   mainEditor();

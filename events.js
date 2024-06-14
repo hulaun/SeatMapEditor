@@ -12,6 +12,9 @@ const insertTableSeatDropDown = document.getElementById(
 const selectButton = document.getElementById("selectArea");
 const undoButton = document.getElementById("undoButton");
 const redoButton = document.getElementById("redoButton");
+const duplicateShape = document.getElementById("duplicateShape");
+const mirrorHorizontally = document.getElementById("mirrorHorizontally");
+const mirrorVertically = document.getElementById("mirrorVertically");
 const saveButton = document.getElementById("saveButton");
 const loadButton = document.getElementById("loadButton");
 const panningButton = document.getElementById("panningButton");
@@ -26,15 +29,13 @@ const seatUndoButton = document.getElementById("seatUndoButton");
 const seatRedoButton = document.getElementById("seatRedoButton");
 const seatRemoveButton = document.getElementById("seatRemoveButton");
 const insertTextButton = document.getElementById("insertText");
+const duplicateShapeInArea = document.getElementById("duplicateShapeInArea");
 
 const editorTitle = document.getElementById("editorTitle");
 const editorContent = document.getElementById("editorContent");
 
 function removeMainMapEventListeners() {
   canvas.removeEventListener("mousedown", startStageDrawing);
-  canvas.removeEventListener("mousedown", startAreaDrawing);
-  canvas.removeEventListener("mousemove", drawAreaPreview);
-  canvas.removeEventListener("mouseup", finishAreaDrawing);
   canvas.removeEventListener("mousedown", selectShape);
   canvas.removeEventListener("dblclick", zoomInArea);
   canvas.removeEventListener("mousemove", dragShape);
@@ -46,7 +47,7 @@ function removeMainMapEventListeners() {
   canvas.removeEventListener("mousemove", movePoint);
   canvas.removeEventListener("mouseup", stopEditingArea);
 
-  canvas.removeEventListener("click", handleCanvasClick);
+  canvas.removeEventListener("click", addNewArea);
 }
 canvas.addEventListener("wheel", (event) => {
   handleWheel(event);
@@ -107,14 +108,10 @@ insertEllipseStage.addEventListener("click", () => {
   selectedType = "Ellipse";
   canvas.addEventListener("mousedown", startStageDrawing);
 });
-// insertArea.addEventListener("click", () => {
-//   mainMapReset();
-//   canvas.addEventListener("mousedown", startAreaDrawing);
-// });
 insertArea.addEventListener("click", () => {
   mainMapReset();
   canvas.addEventListener("mousemove", handleCanvasDraw);
-  canvas.addEventListener("click", handleCanvasClick);
+  canvas.addEventListener("click", addNewArea);
 });
 
 selectButton.addEventListener("click", () => {
@@ -137,6 +134,37 @@ redoButton.addEventListener("click", () => {
     restoreCanvasState(currentStateIndex);
     mainEditor();
   }
+});
+
+duplicateShape.addEventListener("click", () => {
+  if (selectedShape == null && selectedShape.type !== "Area") return;
+  const newShape = new PolygonArea({ ...selectedShape, name: "New Name" });
+
+  // Update the new shape's coordinates
+  newShape.x += 10;
+  newShape.y += 10;
+
+  // Push the new shape into the shapes array
+  shapes.push(newShape);
+  newShape.updatePoints();
+  selectedShape = newShape;
+  saveCanvasState();
+  drawAll();
+  mainEditor();
+});
+mirrorHorizontally.addEventListener("click", () => {
+  if (selectedShape == null) return;
+  selectedShape.mirrorHorizontally();
+  saveCanvasState();
+  drawAll();
+  mainEditor();
+});
+mirrorVertically.addEventListener("click", () => {
+  if (selectedShape == null) return;
+  selectedShape.mirrorVertically();
+  saveCanvasState();
+  drawAll();
+  mainEditor();
 });
 
 saveButton.addEventListener("click", () => {
@@ -169,16 +197,17 @@ document.getElementById("fileInput").addEventListener("change", (event) => {
   reader.onload = function (e) {
     const json = e.target.result;
     const canvasData = JSON.parse(json);
-    console.log(canvasData.shapes);
 
     shapes = [];
 
     shapes = canvasData.shapes.map((shapeData) => {
       switch (shapeData.data.type) {
-        case "Stage":
-          return Stage.deserialize(shapeData.data);
+        case "EllipseStage":
+          return EllipseStage.deserialize(shapeData.data);
+        case "RectangleStage":
+          return RectangleStage.deserialize(shapeData.data);
         case "Area":
-          return Area.deserialize(shapeData.data);
+          return PolygonArea.deserialize(shapeData.data);
         default:
           console.log(shapeData);
       }
@@ -240,6 +269,7 @@ backButton.addEventListener("click", () => {
   mainMenuBar.style.display = "flex";
   areaMenuBar.style.display = "none";
   mainEditor();
+  console.log(shapes);
 });
 
 insertSeats.addEventListener("click", (event) => {
@@ -254,11 +284,6 @@ insertGridSeats.addEventListener("click", () => {
   selectedType = "grid";
   canvas.addEventListener("click", startSeatDrawing);
 });
-
-// insertCircleTable.addEventListener("click", () => {
-// insertTableSeatDropDown.classList.toggle("show");
-// canvas.addEventListener("mousedown", startAreaDrawing);
-// });
 
 selectSeatsMode.addEventListener("click", () => {
   areaReset();
@@ -290,4 +315,32 @@ insertTextButton.addEventListener("click", () => {
   areaReset();
   insertTextMode = true;
   canvas.addEventListener("mousedown", insertText);
+});
+
+duplicateShapeInArea.addEventListener("click", () => {
+  if (selectedShape == null) return;
+  switch (selectedShape.type) {
+    case "Row": {
+      const newShape = new Row({ ...selectedShape, name: "New Name" });
+      selectedShape.seats.map((seat) => {
+        newShape.seats.push(new Seat(seat));
+      });
+      newShape.startX += 10;
+      newShape.startY += 10;
+      zoomedArea.shapes.push(newShape);
+      selectedShape = newShape;
+      break;
+    }
+    case "Text": {
+      const newShape = new Text({ ...selectedShape, name: "New Name" });
+      newShape.x += 10;
+      newShape.y += 10;
+      zoomedArea.shapes.push(newShape);
+      selectedShape = newShape;
+      break;
+    }
+  }
+  saveAreaCanvasState();
+  drawAll();
+  mainEditor();
 });

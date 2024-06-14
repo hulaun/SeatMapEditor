@@ -38,7 +38,45 @@ function mainEditor() {
   `);
 }
 
-function roundedRectangleEditor(shape, mouseX, mouseY) {
+function polygonAreaEditor(shape, mouseX, mouseY) {
+  if (shape.isPointInside(mouseX, mouseY)) {
+    selectedShape = shape;
+
+    offsetX = mouseX - shape.x;
+    offsetY = mouseY - shape.y;
+    setEditorTitle(`<h4>${selectedShape.name}</h4>`);
+    setEditorContent(`
+      <label for="areaName">Area Name:</label>
+      <input type="text" id="areaName" value="${shape.name || ""}">
+      <br>
+      <label for="areaColor">Area Color:</label>
+      <input type="color" id="areaColor" value="${
+        shape.color === "white" ? "#ffffff" : shape.color || "#ffffff"
+      }">
+      <br>
+    `);
+
+    document.getElementById("areaName").addEventListener("input", (e) => {
+      shape.name = e.target.value;
+      saveCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("areaColor").addEventListener("input", (e) => {
+      shape.color = e.target.value;
+      saveCanvasState();
+      drawAll();
+    });
+    if (selectedShape.isPointInsidePoints(mouseX, mouseY)) {
+      canvas.addEventListener("mousedown", selectPoint);
+    } else {
+      canvas.addEventListener("mousemove", dragShape);
+      canvas.addEventListener("mouseup", stopDragShape);
+    }
+  }
+}
+
+function rectangleStageEditor(shape, mouseX, mouseY) {
   if (shape.isPointInside(mouseX, mouseY)) {
     selectedShape = shape;
 
@@ -190,7 +228,71 @@ function roundedRectangleEditor(shape, mouseX, mouseY) {
     canvas.addEventListener("mouseup", stopDragShape);
   }
 }
+function ellipseStageEditor(shape, mouseX, mouseY) {
+  if (shape.isPointInside(mouseX, mouseY)) {
+    selectedShape = shape;
 
+    offsetX = mouseX - shape.x;
+    offsetY = mouseY - shape.y;
+    setEditorTitle("<h4>Select and Edit Ellipse Stage Options</h4>");
+    setEditorContent(`
+      <label for="shapeName">Stage Name:</label>
+      <input type="text" id="shapeName" value="${shape.name || ""}">
+      <br>
+      <label for="stageWidth">Stage Width:</label>
+      <input type="range" id="stageWidth" min="10" max="500" step="1" value="${
+        shape.width || 100
+      }">
+      <br>
+      <label for="stageHeight">Stage Height:</label>
+      <input type="range" id="stageHeight" min="10" max="500" step="1" value="${
+        shape.height || 100
+      }">
+      <br>
+      <label for="rotation">Rotation (degrees):</label>
+      <input type="range" id="rotation" min="0" max="360" step="1" value="${
+        shape.rotation || 0
+      }">
+      <br>
+      <label for="color">Color:</label>
+      <input type="color" id="color" value="${shape.color || "#EFEFEF"}">
+      <br>
+    `);
+
+    document.getElementById("shapeName").addEventListener("input", (e) => {
+      shape.name = e.target.value;
+      saveCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("stageWidth").addEventListener("input", (e) => {
+      shape.width = parseInt(e.target.value, 10);
+      saveCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("stageHeight").addEventListener("input", (e) => {
+      shape.height = parseInt(e.target.value, 10);
+      saveCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("rotation").addEventListener("input", (e) => {
+      shape.rotation = parseInt(e.target.value, 10);
+      saveCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("color").addEventListener("input", (e) => {
+      shape.color = e.target.value;
+      saveCanvasState();
+      drawAll();
+    });
+
+    canvas.addEventListener("mousemove", dragShape);
+    canvas.addEventListener("mouseup", stopDragShape);
+  }
+}
 function areaEditor() {
   let areaListHtml = "";
 
@@ -285,9 +387,7 @@ function rowEditor(shape, mouseX, mouseY) {
 }
 
 function seatEditor(seat, mouseX, mouseY) {
-  console.log("why");
   if (seat.isPointInside(mouseX, mouseY)) {
-    console.log("why2");
     selectedShape = seat;
 
     offsetX = mouseX - seat.x;
@@ -346,6 +446,11 @@ function textEditor(shape, mouseX, mouseY) {
     <label for="fontColor">Color:</label>
     <input type="color" id="fontColor" value="${shape.color || "#000000"}">
     <br>
+    <label for="rotation">Rotation (degrees):</label>
+    <input type="range" id="rotation" min="0" max="360" step="1" value="${
+      (shape.rotation > 0 ? shape.rotation : 360 + shape.rotation) || 0
+    }">
+    <br>
     <label for="fontFamily">Font Family:</label>
     <select id="fontFamily">
       <option value="Arial" ${
@@ -375,6 +480,12 @@ function textEditor(shape, mouseX, mouseY) {
 
     document.getElementById("fontColor").addEventListener("input", (e) => {
       shape.color = e.target.value;
+      saveAreaCanvasState();
+      drawAll();
+    });
+
+    document.getElementById("rotation").addEventListener("input", (e) => {
+      shape.rotation = parseInt(e.target.value, 10);
       saveAreaCanvasState();
       drawAll();
     });
