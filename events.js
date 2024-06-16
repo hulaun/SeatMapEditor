@@ -143,10 +143,10 @@ duplicateShape.addEventListener("click", () => {
   // Update the new shape's coordinates
   newShape.x += 10;
   newShape.y += 10;
-
   // Push the new shape into the shapes array
   shapes.push(newShape);
   newShape.updatePoints();
+  newShape.setOffsetPoints();
   selectedShape = newShape;
   saveCanvasState();
   drawAll();

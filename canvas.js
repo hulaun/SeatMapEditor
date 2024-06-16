@@ -29,7 +29,7 @@ let currentAreaStateIndex = -1;
 
 let shapes = [];
 function drawAll() {
-  ctx.clearRect(-300, -300, canvas.width * 1.5, canvas.height * 1.5);
+  ctx.clearRect(-600, -600, canvas.width * 1.5, canvas.height * 1.5);
   shapes.forEach((shape) => {
     if (!shape.isHidden) {
       if (zoomedArea != null) {
@@ -85,7 +85,6 @@ function saveCanvasState() {
 
   canvasStates.push(state);
   currentStateIndex++;
-  console.log(state.shapes);
 }
 
 function updateCurrentCanvasState() {
@@ -126,7 +125,7 @@ function restoreCanvasState(index) {
 
   const image = new Image();
   image.onload = function () {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(-600, -600, canvas.width * 1.5, canvas.height * 1.5);
     ctx.drawImage(image, 0, 0);
     drawAll();
   };
@@ -142,6 +141,7 @@ function saveAreaCanvasState() {
   if (currentAreaStateIndex < canvasAreaStates.length - 1) {
     canvasAreaStates.splice(currentAreaStateIndex + 1);
   }
+  console.log(state);
 
   canvasAreaStates.push(state);
   currentAreaStateIndex++;
@@ -163,7 +163,7 @@ function restoreAreaCanvasState(index) {
 
   const image = new Image();
   image.onload = function () {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(-600, -600, canvas.width * 1.5, canvas.height * 1.5);
     ctx.drawImage(image, 0, 0);
     drawAll();
   };

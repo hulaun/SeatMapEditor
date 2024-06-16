@@ -273,6 +273,7 @@ class Polygon extends Shape {
   }
 
   updatePoints() {
+    console.log(this.points);
     this.points = this.points.map((point) => {
       return {
         ...point,
@@ -469,7 +470,7 @@ class RectangleStage extends Rectangle {
     ctx.font = `${this.width / 12}px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    ctx.fillStyle = "grey";
+    ctx.fillStyle = "black";
     ctx.fillText(this.name, this.x + this.width / 2, this.y + this.height / 2);
     return "Stage";
   }
@@ -514,7 +515,7 @@ class EllipseStage extends Ellipse {
     ctx.font = `${this.width / 12}px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    ctx.fillStyle = "grey";
+    ctx.fillStyle = "black";
     ctx.fillText(this.name, this.x + this.width / 2, this.y + this.height / 2);
     return "Stage";
   }
@@ -542,7 +543,32 @@ class PolygonArea extends Polygon {
     this.furthestY = furthestY;
     this.type = "Area";
     this.name = name;
-    this.shapes = shapes ?? [];
+    this.shapes = [];
+    shapes
+      ? shapes.map((shape) => {
+          switch (shape.type) {
+            case "Row": {
+              const row = new Row({ ...shape });
+              for (
+                let seatIndex = 0;
+                seatIndex < shape.seats.length;
+                seatIndex++
+              ) {
+                row.createSeat({
+                  number: seatIndex + 1,
+                  isBuyed: false,
+                });
+              }
+
+              this.shapes.push(row);
+            }
+            case "Text": {
+              const text = new Text({ ...shape });
+              this.shapes.push(text);
+            }
+          }
+        })
+      : (this.shapes = []);
   }
 
   serialize() {
@@ -579,7 +605,7 @@ class PolygonArea extends Polygon {
     ctx.font = `16px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    ctx.fillStyle = "lightgrey";
+    ctx.fillStyle = "black";
     ctx.fillText(this.name, this.x, this.y);
     if (isZoomed) {
       this.shapes.forEach((shape) => {
@@ -625,7 +651,6 @@ class PolygonArea extends Polygon {
     rotation,
     seatSpacing = 10,
   }) {
-    console.log(this.x, this.y);
     const row = new Row({
       name,
       startX: startX - this.x,
@@ -865,6 +890,23 @@ class Row {
     ctx.rotate((this.rotation * Math.PI) / 180);
     ctx.translate(-(this.startX + this.area.x), -(this.startY + this.area.y));
 
+    ctx.save();
+    ctx.translate(this.startX + this.area.x - 20, this.startY + this.area.y);
+    ctx.rotate(-(this.rotation * Math.PI) / 180);
+    ctx.translate(
+      -(this.startX + this.area.x - 20),
+      -(this.startY + this.area.y)
+    );
+
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "red";
+    ctx.fillText(
+      this.name,
+      this.startX + this.area.x - 20,
+      this.startY + this.area.y
+    );
+    ctx.restore();
+
     this.seats.forEach((seat) => seat.draw());
 
     ctx.restore();
@@ -949,30 +991,33 @@ class Seat {
   }
 
   draw() {
+    const centerX = this.x + this.row.startX + this.row.area.x;
+    const centerY = this.y + this.row.startY + this.row.area.y;
+
+    // Draw the seat circle
     ctx.beginPath();
-    ctx.arc(
-      this.x + this.row.startX + this.row.area.x,
-      this.y + this.row.startY + this.row.area.y,
-      this.radius,
-      0,
-      Math.PI * 2,
-      false
-    );
+    ctx.arc(centerX, centerY, this.radius, 0, Math.PI * 2, false);
     ctx.strokeStyle = "black";
     ctx.stroke();
+
     if (this.isBuyed) {
       ctx.fillStyle = "red";
       ctx.fill();
     }
+
+    // Draw the seat number
+    ctx.save(); // Save the current state
+    ctx.translate(centerX, centerY);
+    ctx.rotate(-(this.row.rotation * Math.PI) / 180); // Reset the rotation for the text
+    ctx.translate(-centerX, -centerY);
+
     ctx.fillStyle = "black";
     ctx.font = `${this.radius * 0.75}px Arial`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
-    ctx.fillText(
-      this.row.name + this.number,
-      this.x + this.row.startX + this.row.area.x,
-      this.y + this.row.startY + this.row.area.y
-    );
+    ctx.fillText(this.number, centerX, centerY);
+
+    ctx.restore(); // Restore the state after drawing the text
   }
 
   isPointInside(x, y) {

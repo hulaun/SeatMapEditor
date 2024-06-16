@@ -17,7 +17,7 @@ function addNewArea(e) {
   startY = e.clientY - translateY;
   if (!currentPolygon) {
     // Start a new polygon
-    currentPolygon = new PolygonArea(name);
+    currentPolygon = new PolygonArea("New Name");
     currentPolygon.addPoint(startX, startY);
     isDrawing = true;
   } else {
@@ -167,7 +167,6 @@ function selectShape(event) {
 }
 
 function selectPoint(event) {
-  console.log(selectedShape);
   const x = event.clientX - translateX;
   const y = event.clientY - translateY;
   selectedShape.selectedPointIndex = selectedShape.points.findIndex((point) => {
@@ -209,6 +208,7 @@ function dragShape(event) {
       selectedShape.x = mouseX - offsetX;
       selectedShape.y = mouseY - offsetY;
       selectedShape.updatePoints();
+      selectedShape.setOffsetPoints();
     } else {
       const mouseX = event.clientX - translateX;
       const mouseY = event.clientY - translateY;
@@ -290,7 +290,10 @@ function zoomInArea(event) {
   const mouseY = event.clientY - translateY;
   for (let i = shapes.length - 1; i >= 0; i--) {
     if (shapes[i].type === "Stage") continue;
-    if (shapes[i].isPointInside(mouseX, mouseY)) {
+    if (
+      shapes[i].isPointInside(mouseX, mouseY) &&
+      !shapes[i].isPointInsidePoints(mouseX, mouseY)
+    ) {
       zoomedArea = shapes[i];
       zoomInOnShape(shapes[i]);
       mainMenuBar.style.display = "none";
@@ -300,33 +303,6 @@ function zoomInArea(event) {
   }
 }
 
-// function zoomInOnShape(shape) {
-//   saveCanvasState();
-//   shapes.forEach((s) => (s.isHidden = s !== shape));
-
-//   let zoomedWidth, zoomedHeight;
-
-//   if (shape.height > shape.width) {
-//     zoomedHeight = window.innerHeight / 1.7;
-//     zoomedWidth = (shape.width * zoomedHeight) / shape.height;
-//   } else {
-//     zoomedWidth = window.innerWidth / 1.7;
-//     zoomedHeight = (shape.height * zoomedWidth) / shape.width;
-//   }
-//   const centerX = window.innerWidth / 2;
-//   const centerY = window.innerHeight / 2;
-//   const newX = centerX - zoomedWidth / 1.5;
-//   const newY = centerY - zoomedHeight / 2;
-
-//   shape.width = zoomedWidth;
-//   shape.height = zoomedHeight;
-//   shape.x = newX - translateX;
-//   shape.y = newY - translateY;
-
-//   areaEditor();
-//   drawAll();
-//   saveAreaCanvasState();
-// }
 function zoomInOnShape(polygon) {
   saveCanvasState();
   shapes.forEach((s) => (s.isHidden = s !== polygon));
@@ -347,6 +323,7 @@ function zoomInOnShape(polygon) {
   polygon.y = window.innerHeight / 2 - translateY;
   polygon.zoomShape(zoomedRatio * 0.7);
   polygon.calculateFurthestCoordinates();
+  polygon.color = "#fff";
 
   // Scale the offset values
 
