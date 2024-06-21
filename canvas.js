@@ -12,8 +12,8 @@ let secondX, secondY;
 let translateX = 0;
 let translateY = 0;
 const touchpadScalingFactor = 1.5;
-const seatRadius = 10;
-const seatSpacing = 10;
+const seatRadius = 6;
+const seatSpacing = 6;
 let currentPolygon = null;
 let selectedShape = null;
 let zoomedArea = null;
@@ -34,7 +34,7 @@ function drawAll() {
     if (!shape.isHidden) {
       if (zoomedArea != null) {
         ctx.fillStyle = "lightgrey";
-        ctx.fillRect(-300, -300, canvas.width * 1.5, canvas.height * 1.5);
+        ctx.fillRect(-600, -600, canvas.width * 1.5, canvas.height * 1.5);
         zoomedArea.draw(true);
         if (selectedShape != null) {
           if (selectedShape.type === "Row") {
@@ -82,7 +82,6 @@ function saveCanvasState() {
   if (currentStateIndex < canvasStates.length - 1) {
     canvasStates.splice(currentStateIndex + 1);
   }
-
   canvasStates.push(state);
   currentStateIndex++;
 }
@@ -109,7 +108,6 @@ function updateCurrentCanvasState() {
 
 function restoreCanvasState(index) {
   const state = canvasStates[index];
-
   shapes = state.shapes.map((shapeData) => {
     switch (shapeData.type) {
       case "RectangleStage":
@@ -141,7 +139,6 @@ function saveAreaCanvasState() {
   if (currentAreaStateIndex < canvasAreaStates.length - 1) {
     canvasAreaStates.splice(currentAreaStateIndex + 1);
   }
-  console.log(state);
 
   canvasAreaStates.push(state);
   currentAreaStateIndex++;
@@ -149,7 +146,6 @@ function saveAreaCanvasState() {
 
 function restoreAreaCanvasState(index) {
   const state = canvasAreaStates[index];
-
   zoomedArea.shapes = state.shapes.map((shapeData) => {
     switch (shapeData.type) {
       case "Row":

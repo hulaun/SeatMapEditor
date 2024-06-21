@@ -266,10 +266,10 @@ backButton.addEventListener("click", () => {
   shapes.forEach((s) => (s.isHidden = false));
   currentStateIndex--;
   restoreCanvasState(currentStateIndex);
+  currentAreaStateIndex = 0;
   mainMenuBar.style.display = "flex";
   areaMenuBar.style.display = "none";
   mainEditor();
-  console.log(shapes);
 });
 
 insertSeats.addEventListener("click", (event) => {
@@ -321,18 +321,19 @@ duplicateShapeInArea.addEventListener("click", () => {
   if (selectedShape == null) return;
   switch (selectedShape.type) {
     case "Row": {
-      const newShape = new Row({ ...selectedShape, name: "New Name" });
+      const newShape = new Row({ ...selectedShape, name: "R" });
       selectedShape.seats.map((seat) => {
         newShape.seats.push(new Seat(seat));
       });
       newShape.startX += 10;
       newShape.startY += 10;
+      newShape.updateChildren();
       zoomedArea.shapes.push(newShape);
       selectedShape = newShape;
       break;
     }
     case "Text": {
-      const newShape = new Text({ ...selectedShape, name: "New Name" });
+      const newShape = new Text({ ...selectedShape, name: "R" });
       newShape.x += 10;
       newShape.y += 10;
       zoomedArea.shapes.push(newShape);

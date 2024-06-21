@@ -559,12 +559,30 @@ class PolygonArea extends Polygon {
                   isBuyed: false,
                 });
               }
+              row.area = {
+                points: this.points,
+                color: this.color,
+                selectedPointIndex: this.selectedPointIndex,
+                x: this.x,
+                y: this.y,
+                furthestX: this.furthestX,
+                furthestY: this.furthestY,
+              };
 
-              this.shapes.push(row);
+              this.addShape(row);
             }
             case "Text": {
               const text = new Text({ ...shape });
-              this.shapes.push(text);
+              text.area = {
+                points: this.points,
+                color: this.color,
+                selectedPointIndex: this.selectedPointIndex,
+                x: this.x,
+                y: this.y,
+                furthestX: this.furthestX,
+                furthestY: this.furthestY,
+              };
+              this.addShape(text);
             }
           }
         })
@@ -582,21 +600,10 @@ class PolygonArea extends Polygon {
 
   static deserialize(data) {
     const polygonArea = new PolygonArea(data);
-    polygonArea.shapes = data.shapes.map((shapeData) => {
-      switch (shapeData.type) {
-        case "Row":
-          return Row.deserialize(shapeData, polygonArea);
-        case "Text":
-          return Text.deserialize(shapeData);
-        default:
-          throw new Error(`Unknown shape type: ${shapeData.type}`);
-      }
-    });
     return polygonArea;
   }
 
   addShape(shape) {
-    shape.area = this;
     this.shapes.push(shape);
   }
 
@@ -656,10 +663,19 @@ class PolygonArea extends Polygon {
       startX: startX - this.x,
       startY: startY - this.y,
       seatRadius,
+      area: {
+        points: this.points,
+        color: this.color,
+        selectedPointIndex: this.selectedPointIndex,
+        x: this.x,
+        y: this.y,
+        furthestX: this.furthestX,
+        furthestY: this.furthestY,
+      },
       seatSpacing,
-      area: this,
       rotation: rotation,
     });
+    console.log(row);
     return row;
   }
 
@@ -679,7 +695,6 @@ class PolygonArea extends Polygon {
       seatRadius,
       seatSpacing,
       rotation,
-      area: this,
     });
 
     for (let seatIndex = 0; seatIndex < numberOfSeats; seatIndex++) {
@@ -693,7 +708,15 @@ class PolygonArea extends Polygon {
 
   updateChildren() {
     this.shapes.forEach((shape) => {
-      shape.area = this;
+      shape.area = {
+        points: this.points,
+        color: this.color,
+        selectedPointIndex: this.selectedPointIndex,
+        x: this.x,
+        y: this.y,
+        furthestX: this.furthestX,
+        furthestY: this.furthestY,
+      };
       if (shape.type === "Row") {
         shape.updateChildren();
       }
@@ -710,7 +733,7 @@ class Text {
     fontFamily = "Arial",
     color = "#000000",
     rotation = 0,
-    area,
+    area = null,
   }) {
     this.content = content;
     this.x = x;
@@ -732,6 +755,7 @@ class Text {
       fontFamily: this.fontFamily,
       color: this.color,
       rotation: this.rotation,
+      area: this.area,
     };
   }
   static deserialize(data) {
@@ -805,7 +829,7 @@ class Row {
     seatRadius = 10,
     seatSpacing = 10,
     rotation = 0,
-    area,
+    area = null,
   }) {
     this.name = name;
     this.startX = startX;
@@ -816,7 +840,6 @@ class Row {
     this.rotation = rotation;
     this.area = area;
     this.type = "Row";
-    this.area = area;
   }
 
   serialize() {
@@ -829,10 +852,11 @@ class Row {
       seatSpacing: this.seatSpacing,
       seats: this.seats.map((seat) => seat.serialize()),
       rotation: this.rotation,
+      area: this.area,
     };
   }
 
-  static deserialize(data, area = null) {
+  static deserialize(data) {
     const row = new Row({
       ...data,
     });
@@ -874,7 +898,13 @@ class Row {
     const x = this.seats.length * (this.seatRadius * 2 + this.seatSpacing);
     const y = 0;
     const seat = new Seat({
-      row: this,
+      row: {
+        startX: this.startX,
+        startY: this.startY,
+        area: this.area,
+        seatRadius: this.seatRadius,
+        rotation: this.rotation,
+      },
       number: number,
       x: x,
       y: y,
@@ -957,7 +987,13 @@ class Row {
   }
   updateChildren() {
     this.seats.forEach((seat, index) => {
-      seat.row = this;
+      seat.row = {
+        startX: this.startX,
+        startY: this.startY,
+        area: this.area,
+        seatRadius: this.seatRadius,
+        rotation: this.rotation,
+      };
       seat.radius = this.seatRadius;
       seat.x = index * (this.seatRadius * 2 + this.seatSpacing);
     });
@@ -983,6 +1019,7 @@ class Seat {
       y: this.y,
       radius: this.radius,
       isBuyed: this.isBuyed,
+      row: this.row,
     };
   }
 
@@ -993,7 +1030,6 @@ class Seat {
   draw() {
     const centerX = this.x + this.row.startX + this.row.area.x;
     const centerY = this.y + this.row.startY + this.row.area.y;
-
     // Draw the seat circle
     ctx.beginPath();
     ctx.arc(centerX, centerY, this.radius, 0, Math.PI * 2, false);
