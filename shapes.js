@@ -568,22 +568,24 @@ class PolygonArea extends Polygon {
                 furthestX: this.furthestX,
                 furthestY: this.furthestY,
               };
-
               this.addShape(row);
+              break;
             }
-            case "Text": {
-              const text = new Text({ ...shape });
-              text.area = {
-                points: this.points,
-                color: this.color,
-                selectedPointIndex: this.selectedPointIndex,
-                x: this.x,
-                y: this.y,
-                furthestX: this.furthestX,
-                furthestY: this.furthestY,
-              };
-              this.addShape(text);
-            }
+            case "Text":
+              {
+                const text = new Text({ ...shape });
+                text.area = {
+                  points: this.points,
+                  color: this.color,
+                  selectedPointIndex: this.selectedPointIndex,
+                  x: this.x,
+                  y: this.y,
+                  furthestX: this.furthestX,
+                  furthestY: this.furthestY,
+                };
+                this.addShape(text);
+              }
+              break;
           }
         })
       : (this.shapes = []);
@@ -599,7 +601,9 @@ class PolygonArea extends Polygon {
   }
 
   static deserialize(data) {
+    console.log(data);
     const polygonArea = new PolygonArea(data);
+    console.log(polygonArea);
     return polygonArea;
   }
 

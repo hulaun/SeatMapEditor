@@ -304,6 +304,7 @@ function zoomInArea(event) {
 }
 function zoomInOnShape(polygon) {
   saveCanvasState();
+  console.log(zoomedArea);
   shapes.forEach((s) => (s.isHidden = s !== polygon));
 
   // Set a fixed zoom ratio

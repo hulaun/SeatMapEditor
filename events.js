@@ -255,6 +255,7 @@ function areaReset() {
   removeAreaEventListeners();
   selectedShape = null;
   selectedType = "";
+  insertTextMode = false;
   zoomedArea.draw(ctx, true);
 }
 
@@ -333,6 +334,7 @@ duplicateShapeInArea.addEventListener("click", () => {
       break;
     }
     case "Text": {
+      console.log(selectedShape);
       const newShape = new Text({ ...selectedShape, name: "R" });
       newShape.x += 10;
       newShape.y += 10;
