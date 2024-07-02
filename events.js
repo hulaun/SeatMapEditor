@@ -93,6 +93,92 @@ window.addEventListener("click", (event) => {
     }
   }
 });
+
+document.addEventListener("keydown", (event) => {
+  if (event.ctrlKey && event.key === "z") {
+    event.preventDefault(); // Prevent the default undo action
+    if (zoomedArea) {
+      if (currentAreaStateIndex > 0) {
+        currentAreaStateIndex--;
+        restoreAreaCanvasState(currentAreaStateIndex);
+        validateRows();
+        areaEditor();
+      }
+    } else {
+      if (currentStateIndex > 0) {
+        currentStateIndex--;
+        restoreCanvasState(currentStateIndex);
+        mainEditor();
+      }
+    }
+  } else if (event.ctrlKey && event.key === "y") {
+    event.preventDefault(); // Prevent the default redo action
+    if (zoomedArea) {
+      if (currentAreaStateIndex < canvasAreaStates.length - 1) {
+        currentAreaStateIndex++;
+        restoreAreaCanvasState(currentAreaStateIndex);
+        areaEditor();
+      }
+    } else {
+      if (currentStateIndex < canvasStates.length - 1) {
+        currentStateIndex++;
+        restoreCanvasState(currentStateIndex);
+        mainEditor();
+      }
+    }
+  } else if (event.ctrlKey && event.key === "v") {
+    console.log("yes");
+    event.preventDefault(); // Prevent the default paste action
+
+    if (zoomedArea) {
+      // Duplicate shape in zoomed area
+      if (selectedShape == null) return;
+      switch (selectedShape.type) {
+        case "Row": {
+          const newShape = new Row({ ...selectedShape, name: "R" });
+          selectedShape.seats.map((seat) => {
+            newShape.seats.push(new Seat(seat));
+          });
+          newShape.startX += 10;
+          newShape.startY += 10;
+          newShape.updateChildren();
+          zoomedArea.shapes.push(newShape);
+          selectedShape = newShape;
+          break;
+        }
+        case "Text": {
+          const newShape = new Text({ ...selectedShape, name: "New Name" });
+          newShape.x += 10;
+          newShape.y += 10;
+          zoomedArea.shapes.push(newShape);
+          selectedShape = newShape;
+          break;
+        }
+      }
+      saveAreaCanvasState();
+      drawAll();
+      areaEditor();
+    } else {
+      // Duplicate shape on canvas
+      if (selectedShape == null || selectedShape.type !== "Area") return;
+      const newShape = new PolygonArea({ ...selectedShape, name: "New Name" });
+
+      // Update the new shape's coordinates
+      newShape.x += 10;
+      newShape.y += 10;
+
+      // Push the new shape into the shapes array
+      shapes.push(newShape);
+      newShape.updatePoints();
+      newShape.setOffsetPoints();
+      selectedShape = newShape;
+      saveCanvasState();
+      drawAll();
+      mainEditor();
+    }
+  }
+});
+
 dropdownMenuButton.addEventListener("click", (event) => {
   mapDropDown.classList.toggle("show");
 });
@@ -239,6 +325,7 @@ function removeAreaEventListeners() {
   canvas.removeEventListener("mouseup", stopDragShape);
   canvas.removeEventListener("mousedown", startPanning);
   canvas.removeEventListener("mousedown", insertText);
+  canvas.removeEventListener("dblclick", selectSeat);
 }
 
 function preventDefault(event) {
@@ -260,6 +347,9 @@ function areaReset() {
 }
 
 backButton.addEventListener("click", () => {
+  if (validateRows()) {
+    return;
+  }
   areaReset();
   updateCurrentCanvasState();
   canvasAreaStates = [];
@@ -271,6 +361,8 @@ backButton.addEventListener("click", () => {
   mainMenuBar.style.display = "flex";
   areaMenuBar.style.display = "none";
   mainEditor();
+  canvas.addEventListener("dblclick", zoomInArea);
+  canvas.addEventListener("mousedown", selectShape);
 });
 
 insertSeats.addEventListener("click", (event) => {

@@ -12,8 +12,8 @@ let secondX, secondY;
 let translateX = 0;
 let translateY = 0;
 const touchpadScalingFactor = 1.5;
-const seatRadius = 6;
-const seatSpacing = 6;
+let seatRadius = 6;
+let seatSpacing = 6;
 let currentPolygon = null;
 let selectedShape = null;
 let zoomedArea = null;
@@ -82,8 +82,11 @@ function saveCanvasState() {
   if (currentStateIndex < canvasStates.length - 1) {
     canvasStates.splice(currentStateIndex + 1);
   }
+
   canvasStates.push(state);
   currentStateIndex++;
+
+  sessionStorage.setItem("lastCanvasState", JSON.stringify(state));
 }
 
 function updateCurrentCanvasState() {
@@ -104,6 +107,11 @@ function updateCurrentCanvasState() {
     shapes: updatedShapes,
   };
   canvasStates[currentStateIndex - 1] = updatedState;
+
+  sessionStorage.setItem(
+    "lastCanvasState",
+    JSON.stringify(canvasStates[currentStateIndex - 1])
+  );
 }
 
 function restoreCanvasState(index) {
@@ -129,6 +137,29 @@ function restoreCanvasState(index) {
   };
   image.src = state.canvasImage;
 }
+function restoreCanvasStateFromSession(state) {
+  const parsedState = JSON.parse(state);
+  shapes = parsedState.shapes.map((shapeData) => {
+    switch (shapeData.type) {
+      case "RectangleStage":
+        return RectangleStage.deserialize(shapeData);
+      case "EllipseStage":
+        return EllipseStage.deserialize(shapeData);
+      case "Area":
+        return PolygonArea.deserialize(shapeData);
+      default:
+        throw new Error("Unknown shape type: " + shapeData.type);
+    }
+  });
+
+  const image = new Image();
+  image.onload = function () {
+    ctx.clearRect(-600, -600, canvas.width * 1.5, canvas.height * 1.5);
+    ctx.drawImage(image, 0, 0);
+    drawAll();
+  };
+  image.src = parsedState.canvasImage;
+}
 
 function saveAreaCanvasState() {
   const state = {
@@ -146,6 +177,7 @@ function saveAreaCanvasState() {
 
 function restoreAreaCanvasState(index) {
   const state = canvasAreaStates[index];
+
   zoomedArea.shapes = state.shapes.map((shapeData) => {
     switch (shapeData.type) {
       case "Row":
@@ -167,9 +199,14 @@ function restoreAreaCanvasState(index) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  var map = new FirstTemplate(100, 300, 700, 800);
-  shapes = [...shapes, ...map.shapes];
-  drawAll();
+  const state = sessionStorage.getItem("lastCanvasState");
+  if (state) {
+    restoreCanvasStateFromSession(state);
+  } else {
+    var map = new FirstTemplate(100, 300, 700, 800);
+    shapes = [...shapes, ...map.shapes];
+    drawAll();
+  }
   mainEditor();
   saveCanvasState();
 });

@@ -1,16 +1,3 @@
-function isSeatInsideArea(row, area) {
-  for (let i = 0; i < row.seats; i++) {
-    const seat = row.seats[i];
-    const seatRadius = seat.radius || 5;
-    return (
-      seat.x - seatRadius >= area.x &&
-      seat.x + seatRadius <= area.x + area.width &&
-      seat.y - seatRadius >= area.y &&
-      seat.y + seatRadius <= area.y + area.height
-    );
-  }
-}
-
 function mainEditor() {
   let areaListHtml = "";
   shapes
@@ -32,16 +19,32 @@ function mainEditor() {
 
   setEditorTitle("<h4>Areas</h4>");
   setEditorContent(`
+    <label for="seatRadius">Seat radius:</label>
+    <br>
+    <input type="number" id="seatRadius" value="${seatRadius}">
+    <label for="seatSpacing">Seat spacing:</label>
+    <br>
+    <input type="number" id="seatSpacing" value="${seatSpacing}">
+    <br>
+    <br>
     <div class="area-list">
       ${areaListHtml}
     </div>
   `);
+
+  document.getElementById("seatRadius").addEventListener("input", (e) => {
+    seatRadius = e.target.value ? e.target.value : 6;
+  });
+  document.getElementById("seatSpacing").addEventListener("input", (e) => {
+    seatSpacing = e.target.value ? e.target.value : 6;
+  });
+
+  validateAreas();
 }
 
 function polygonAreaEditor(shape, mouseX, mouseY) {
   if (shape.isPointInside(mouseX, mouseY)) {
     selectedShape = shape;
-
     offsetX = mouseX - shape.x;
     offsetY = mouseY - shape.y;
     setEditorTitle(`<h4>${selectedShape.name}</h4>`);
@@ -53,6 +56,9 @@ function polygonAreaEditor(shape, mouseX, mouseY) {
       <input type="color" id="areaColor" value="${
         shape.color === "white" ? "#ffffff" : shape.color || "#ffffff"
       }">
+      <br>
+      <label for="ticketPrice">Ticket Price:</label>
+      <input type="number" id="ticketPrice" value="${shape.ticketPrice || 0}">
       <br>
     `);
 
@@ -67,6 +73,15 @@ function polygonAreaEditor(shape, mouseX, mouseY) {
       saveCanvasState();
       drawAll();
     });
+
+    document.getElementById("ticketPrice").addEventListener("input", (e) => {
+      shape.ticketPrice = e.target.value;
+      saveCanvasState();
+      drawAll();
+    });
+
+    validateAreas();
+
     if (selectedShape.isPointInsidePoints(mouseX, mouseY)) {
       canvas.addEventListener("mousedown", selectPoint);
     } else {
@@ -295,28 +310,18 @@ function ellipseStageEditor(shape, mouseX, mouseY) {
 }
 function areaEditor() {
   let areaListHtml = "";
-
   let seatCount = 0;
   let rowCount = 0;
-  let errorMessages = [];
   zoomedArea.shapes
     .filter((shape) => shape.type === "Row")
     .forEach((row) => {
       rowCount++;
       seatCount += row.seats.length;
-      // if (!isSeatInsideArea(row, zoomedArea)) {
-      //   errorMessages.push(`Seats in Row ${row.name} is outside the area.`);
-      // }
     });
 
   areaListHtml += `
     <div class="area-item" onclick="showAreaDetails('${zoomedArea.id}')">
       <span>${rowCount} rows, ${seatCount} seats</span>
-      ${
-        errorMessages.length > 0
-          ? `<div class="error-messages">${errorMessages.join("<br>")}</div>`
-          : ""
-      }
     </div>
   `;
 
@@ -326,6 +331,7 @@ function areaEditor() {
       ${areaListHtml}
     </div>
   `);
+  validateRows();
 }
 
 function rowEditor(shape, mouseX, mouseY) {
@@ -379,6 +385,8 @@ function rowEditor(shape, mouseX, mouseY) {
       drawAll();
     });
 
+    validateRows();
+
     canvas.addEventListener("dblclick", selectSeat);
 
     canvas.addEventListener("mousemove", dragShape);
@@ -402,9 +410,6 @@ function seatEditor(seat, mouseX, mouseY) {
         seat.radius || 10
       }">
       <br>
-      <label for="seatIsBuyed">Is Seat Bought:</label>
-      <input type="checkbox" id="seatIsBuyed" ${seat.isBuyed ? "checked" : ""}>
-      <br>
     `);
 
     document.getElementById("seatNumber").addEventListener("input", (e) => {
@@ -415,12 +420,6 @@ function seatEditor(seat, mouseX, mouseY) {
 
     document.getElementById("seatRadius").addEventListener("input", (e) => {
       seat.radius = parseInt(e.target.value, 10);
-      saveAreaCanvasState();
-      drawAll();
-    });
-
-    document.getElementById("seatIsBuyed").addEventListener("change", (e) => {
-      seat.isBuyed = e.target.checked;
       saveAreaCanvasState();
       drawAll();
     });
