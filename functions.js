@@ -33,7 +33,7 @@ function addNewArea(e) {
       currentPolygon = null;
       isDrawing = false;
       canvas.removeEventListener("click", addNewArea);
-      canvas.removeEventListener("mousemove", handleCanvasDraw);
+      canvas.removeEventListener("mousemove", handleDrawArea);
     }
   }
   drawAll();
@@ -42,13 +42,75 @@ function addNewArea(e) {
     currentPolygon.drawPreview(secondX, secondY);
   }
 }
-function handleCanvasDraw(e) {
+function handleDrawArea(e) {
   if (!isDrawing || !currentPolygon || currentPolygon.points.length < 1) return;
   secondX = e.clientX - translateX;
   secondY = e.clientY - translateY;
 
   drawAll();
   currentPolygon.drawPreview(secondX, secondY);
+  lines.forEach((line) => {
+    if (isCursorCloseToLine(secondX, secondY, line, 3)) {
+      drawLine(line);
+    }
+  });
+}
+
+function isCursorCloseToLine(x, y, line, threshold) {
+  const { startPoint, endPoint } = line;
+  const distance = pointToLineDistance(x, y, startPoint, endPoint);
+  return distance <= threshold;
+}
+
+function pointToLineDistance(x, y, start, end) {
+  // Extend the line to span the entire canvas width
+  const extendedStart = { x: 0, y: start.y };
+  const extendedEnd = { x: canvas.width, y: end.y };
+
+  const A = x - extendedStart.x;
+  const B = y - extendedStart.y;
+  const C = extendedEnd.x - extendedStart.x;
+  const D = extendedEnd.y - extendedStart.y;
+
+  const dot = A * C + B * D;
+  const len_sq = C * C + D * D;
+  const param = len_sq !== 0 ? dot / len_sq : -1;
+
+  let xx, yy;
+
+  if (param < 0) {
+    xx = extendedStart.x;
+    yy = extendedStart.y;
+  } else if (param > 1) {
+    xx = extendedEnd.x;
+    yy = extendedEnd.y;
+  } else {
+    xx = extendedStart.x + param * C;
+    yy = extendedStart.y + param * D;
+  }
+
+  const dx = x - xx;
+  const dy = y - yy;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function drawLine(line) {
+  const { startPoint, endPoint } = line;
+
+  // Calculate the slope (m) and intercept (b) of the line
+  const m = (endPoint.y - startPoint.y) / (endPoint.x - startPoint.x);
+  const b = startPoint.y - m * startPoint.x;
+
+  // Calculate the y-coordinates at the left and right edges of the canvas
+  const yAtLeftEdge = b; // x = 0
+  const yAtRightEdge = m * canvas.width + b; // x = canvas.width
+
+  ctx.beginPath();
+  ctx.moveTo(0, yAtLeftEdge); // Start from the left edge of the canvas
+  ctx.lineTo(canvas.width, yAtRightEdge); // Draw to the right edge of the canvas
+  ctx.strokeStyle = "red"; // Highlight the line in red
+  ctx.lineWidth = 2;
+  ctx.stroke();
 }
 
 //Stage

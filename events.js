@@ -56,6 +56,7 @@ function mainMapReset() {
   selectedShape = null;
   selectedType = "";
   removeMainMapEventListeners();
+  extractLinesFromShapes();
   drawAll();
 }
 
@@ -196,8 +197,9 @@ insertEllipseStage.addEventListener("click", () => {
 });
 insertArea.addEventListener("click", () => {
   mainMapReset();
-  canvas.addEventListener("mousemove", handleCanvasDraw);
+  canvas.addEventListener("mousemove", handleDrawArea);
   canvas.addEventListener("click", addNewArea);
+  extractLinesFromShapes();
 });
 
 selectButton.addEventListener("click", () => {

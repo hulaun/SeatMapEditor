@@ -28,6 +28,8 @@ let canvasAreaStates = [];
 let currentAreaStateIndex = -1;
 
 let shapes = [];
+let lines = [];
+
 function drawAll() {
   ctx.clearRect(-600, -600, canvas.width * 1.5, canvas.height * 1.5);
   shapes.forEach((shape) => {
@@ -66,6 +68,38 @@ function drawAll() {
   });
 }
 window.addEventListener("resize", resizeCanvas, false);
+
+function extractLinesFromShapes() {
+  lines = [];
+  shapes.forEach((shape) => {
+    if (shape.type === "RectangleStage") {
+      lines.push(
+        {
+          startPoint: { x: shape.x, y: shape.y },
+          endPoint: { x: shape.x + shape.width, y: shape.y },
+        },
+        {
+          startPoint: { x: shape.x + shape.width, y: shape.y },
+          endPoint: { x: shape.x + shape.width, y: shape.y + shape.height },
+        },
+        {
+          startPoint: { x: shape.x + shape.width, y: shape.y + shape.height },
+          endPoint: { x: shape.x, y: shape.y + shape.height },
+        },
+        {
+          startPoint: { x: shape.x, y: shape.y + shape.height },
+          endPoint: { x: shape.x, y: shape.y },
+        }
+      );
+    } else if (shape.type === "Area") {
+      for (let i = 0; i < shape.points.length; i++) {
+        const startPoint = shape.points[i];
+        const endPoint = shape.points[(i + 1) % shape.points.length];
+        lines.push({ startPoint, endPoint });
+      }
+    }
+  });
+}
 
 function resizeCanvas() {
   canvas.width = window.innerWidth * 2;
