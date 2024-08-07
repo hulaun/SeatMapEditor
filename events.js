@@ -56,8 +56,8 @@ function mainMapReset() {
   selectedShape = null;
   selectedType = "";
   removeMainMapEventListeners();
-  extractLinesFromShapes();
   drawAll();
+  extractLinesFromShapes();
 }
 
 window.addEventListener("click", (event) => {
@@ -315,6 +315,7 @@ panningButton.addEventListener("click", () => {
 
 removeButton.addEventListener("click", (event) => {
   removeShape();
+  saveCanvasState();
   mainEditor();
 });
 
