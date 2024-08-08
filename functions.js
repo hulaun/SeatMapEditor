@@ -22,7 +22,10 @@ function addNewArea(e) {
     isDrawing = true;
   } else {
     lines.forEach((line) => {
-      if (isCursorCloseToLine(startX, startY, line, 3)) {
+      if (
+        isCursorCloseToLine(startX, startY, line, 3) ||
+        isCursorCloseToPerpendicularLine(startX, startY, line, 3)
+      ) {
         startX = secondX;
         startY = secondY;
       }
@@ -47,63 +50,96 @@ function addNewArea(e) {
   drawAll();
 }
 function handleDrawArea(e) {
-  if (!isDrawing || !currentPolygon || currentPolygon.points.length < 1) return;
   secondX = e.clientX - translateX;
   secondY = e.clientY - translateY;
-
   drawAll();
-  currentPolygon.drawPreview(secondX, secondY);
+  if (currentPolygon) {
+    currentPolygon.drawPreview(secondX, secondY);
+  }
   lines.forEach((line) => {
-    if (isCursorCloseToLine(secondX, secondY, line, 3)) {
-      const closestPoint = getClosestPointOnLine(
+    const lineCheck = isCursorCloseToLine(secondX, secondY, line, 3);
+    if (lineCheck.isCloseToLine) {
+      secondX = lineCheck.closestPoint.x;
+      secondY = lineCheck.closestPoint.y;
+      drawLine(line);
+    } else {
+      const perpendicularCheck = isCursorCloseToPerpendicularLine(
         secondX,
         secondY,
-        line.startPoint,
-        line.endPoint
+        line,
+        3
       );
-      secondX = closestPoint.x;
-      secondY = closestPoint.y;
-      drawLine(line);
+      if (perpendicularCheck.isCloseToLine) {
+        secondX = perpendicularCheck.closestPoint.x;
+        secondY = perpendicularCheck.closestPoint.y;
+        drawLine(line);
+      }
     }
   });
 }
 
 function getClosestPointOnLine(px, py, start, end) {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const lineLengthSquared = dx * dx + dy * dy;
-
-  if (lineLengthSquared === 0) {
-    // The start and end points are the same
-    return { x: start.x, y: start.y };
-  }
-
-  const t = ((px - start.x) * dx + (py - start.y) * dy) / lineLengthSquared;
-  const clampedT = Math.min(0, Math.min(1, t));
-
-  return {
-    x: start.x + dx,
-    y: start.y + dy,
-  };
-}
-
-function isCursorCloseToLine(x, y, line, threshold) {
-  const { startPoint, endPoint } = line;
-  const distance = pointToLineDistance(x, y, startPoint, endPoint);
-  return distance <= threshold;
-}
-
-function pointToLineDistance(x, y, start, end) {
   if (start.x === end.x) {
-    return Math.abs(x - start.x);
+    return { x: start.x, y: py };
   }
 
   const m = (end.y - start.y) / (end.x - start.x);
   const b = start.y - m * start.x;
 
-  const distance = Math.abs(m * x - y + b) / Math.sqrt(m * m + 1);
+  return {
+    x: px - (m * (m * px - py + b)) / (m * m + 1),
+    y: py - (-1 * (m * px - py + b)) / (m * m + 1),
+  };
+}
 
-  return distance;
+function getClosestPointOnPerpendicularLine(px, py, start, end) {
+  if (start.x === end.x) {
+    return { x: start.x, y: py }; // Vertical line case
+  }
+  if (start.y === end.y) {
+    return { x: px, y: start.y }; // Horizontal line case
+  }
+
+  const m = (end.y - start.y) / (end.x - start.x); // Slope of the line
+  const perpendicularM = -1 / m; // Slope of the perpendicular line
+  const b = py - perpendicularM * px; // Intercept of the perpendicular line
+
+  const intersectionX = (b - (start.y - m * start.x)) / (m - perpendicularM);
+  const intersectionY = m * intersectionX + (start.y - m * start.x);
+
+  return { x: intersectionX, y: intersectionY };
+}
+
+function isCursorCloseToLine(x, y, line, threshold) {
+  const closestPoint = getClosestPointOnLine(
+    x,
+    y,
+    line.startPoint,
+    line.endPoint
+  );
+  const distance = Math.sqrt(
+    (x - closestPoint.x) ** 2 + (y - closestPoint.y) ** 2
+  );
+  return {
+    isCloseToLine: distance <= threshold,
+    closestPoint: distance <= threshold ? closestPoint : undefined,
+  };
+}
+
+function isCursorCloseToPerpendicularLine(x, y, line, threshold) {
+  const closestPoint = getClosestPointOnPerpendicularLine(
+    x,
+    y,
+    line.startPoint,
+    line.endPoint
+  );
+  const distance = Math.sqrt(
+    (x - closestPoint.x) ** 2 + (y - closestPoint.y) ** 2
+  );
+  return {
+    isCloseToLine: distance <= threshold,
+    closestPoint: distance <= threshold ? closestPoint : undefined,
+  };
 }
 
 function drawLine(line) {

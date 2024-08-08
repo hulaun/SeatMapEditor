@@ -33,10 +33,11 @@ function mainEditor() {
   `);
 
   document.getElementById("seatRadius").addEventListener("input", (e) => {
-    seatRadius = e.target.value ? e.target.value : 6;
+    console.log(e.target.value);
+    seatRadius = parseInt(e.target.value) ? parseInt(e.target.value) : 6;
   });
   document.getElementById("seatSpacing").addEventListener("input", (e) => {
-    seatSpacing = e.target.value ? e.target.value : 6;
+    seatSpacing = parseInt(e.target.value) ? parseInt(e.target.value) : 6;
   });
 
   validateAreas();
