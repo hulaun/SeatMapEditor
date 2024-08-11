@@ -46,6 +46,7 @@ function removeMainMapEventListeners() {
   canvas.removeEventListener("mousedown", selectPoint);
   canvas.removeEventListener("mousemove", movePoint);
   canvas.removeEventListener("mouseup", stopEditingArea);
+  canvas.removeEventListener("mousemove", handleDrawArea);
 
   canvas.removeEventListener("click", addNewArea);
 }

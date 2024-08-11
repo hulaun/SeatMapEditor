@@ -55,6 +55,20 @@ function handleDrawArea(e) {
   drawAll();
   if (currentPolygon) {
     currentPolygon.drawPreview(secondX, secondY);
+
+    currentPolygon.points.forEach((point) => {
+      const lineCheck = isCursorCloseToPerpendicularLine(
+        secondX,
+        secondY,
+        point,
+        3
+      );
+      if (lineCheck.isCloseToLine) {
+        secondX = lineCheck.closestPoint.x;
+        secondY = lineCheck.closestPoint.y;
+        drawPLine(lineCheck.closestPoint, lineCheck.type);
+      }
+    });
   }
   lines.forEach((line) => {
     const lineCheck = isCursorCloseToLine(secondX, secondY, line, 3);
@@ -62,18 +76,6 @@ function handleDrawArea(e) {
       secondX = lineCheck.closestPoint.x;
       secondY = lineCheck.closestPoint.y;
       drawLine(line);
-    } else {
-      const perpendicularCheck = isCursorCloseToPerpendicularLine(
-        secondX,
-        secondY,
-        line,
-        3
-      );
-      if (perpendicularCheck.isCloseToLine) {
-        secondX = perpendicularCheck.closestPoint.x;
-        secondY = perpendicularCheck.closestPoint.y;
-        drawLine(line);
-      }
     }
   });
 }
@@ -92,24 +94,6 @@ function getClosestPointOnLine(px, py, start, end) {
   };
 }
 
-function getClosestPointOnPerpendicularLine(px, py, start, end) {
-  if (start.x === end.x) {
-    return { x: start.x, y: py }; // Vertical line case
-  }
-  if (start.y === end.y) {
-    return { x: px, y: start.y }; // Horizontal line case
-  }
-
-  const m = (end.y - start.y) / (end.x - start.x); // Slope of the line
-  const perpendicularM = -1 / m; // Slope of the perpendicular line
-  const b = py - perpendicularM * px; // Intercept of the perpendicular line
-
-  const intersectionX = (b - (start.y - m * start.x)) / (m - perpendicularM);
-  const intersectionY = m * intersectionX + (start.y - m * start.x);
-
-  return { x: intersectionX, y: intersectionY };
-}
-
 function isCursorCloseToLine(x, y, line, threshold) {
   const closestPoint = getClosestPointOnLine(
     x,
@@ -126,42 +110,102 @@ function isCursorCloseToLine(x, y, line, threshold) {
   };
 }
 
-function isCursorCloseToPerpendicularLine(x, y, line, threshold) {
-  const closestPoint = getClosestPointOnPerpendicularLine(
-    x,
-    y,
-    line.startPoint,
-    line.endPoint
+function isCursorCloseToPerpendicularLine(px, py, point, threshold) {
+  // Check horizontal line
+  const closestPointOnHorizontal = getClosestPointOnPerpendicularLine(
+    px,
+    py,
+    point,
+    "horizontal"
   );
-  const distance = Math.sqrt(
-    (x - closestPoint.x) ** 2 + (y - closestPoint.y) ** 2
+  const distanceToHorizontal = Math.sqrt(
+    (closestPointOnHorizontal.x - px) ** 2 +
+      (closestPointOnHorizontal.y - py) ** 2
   );
+
+  // Check vertical line
+  const closestPointOnVertical = getClosestPointOnPerpendicularLine(
+    px,
+    py,
+    point,
+    "vertical"
+  );
+  const distanceToVertical = Math.sqrt(
+    (closestPointOnVertical.x - px) ** 2 + (closestPointOnVertical.y - py) ** 2
+  );
+
+  if (distanceToHorizontal <= threshold) {
+    return {
+      type: "horizontal",
+      isCloseToLine: true,
+      closestPoint: closestPointOnHorizontal,
+    };
+  } else if (distanceToVertical <= threshold) {
+    return {
+      type: "vertical",
+      isCloseToLine: true,
+      closestPoint: closestPointOnVertical,
+    };
+  }
   return {
-    isCloseToLine: distance <= threshold,
-    closestPoint: distance <= threshold ? closestPoint : undefined,
+    type: null,
+    isCloseToLine: false,
+    closestPoint: null,
   };
+}
+
+function getClosestPointOnPerpendicularLine(px, py, point, direction) {
+  if (direction === "horizontal") {
+    return { x: px, y: point.y };
+  } else if (direction === "vertical") {
+    return { x: point.x, y: py };
+  }
+  return null;
+}
+
+function drawPLine(point, type) {
+  if (type === "horizontal") {
+    ctx.beginPath();
+    ctx.moveTo(-300, point.y);
+    ctx.lineTo(canvas.width * 1.3, point.y);
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  } else if (type === "vertical") {
+    ctx.beginPath();
+    ctx.moveTo(point.x, -300);
+    ctx.lineTo(point.x, canvas.height * 1.3);
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
 }
 
 function drawLine(line) {
   const { startPoint, endPoint } = line;
 
+  const extendedWidth = canvas.width * 2;
+  const extendedHeight = canvas.height * 2;
+
   if (startPoint.x === endPoint.x) {
     ctx.beginPath();
-    ctx.moveTo(startPoint.x, 0);
-    ctx.lineTo(startPoint.x, canvas.height);
+    ctx.moveTo(startPoint.x, -extendedHeight);
+    ctx.lineTo(startPoint.x, canvas.height + extendedHeight);
     ctx.strokeStyle = "red";
     ctx.lineWidth = 2;
     ctx.stroke();
   } else {
+    // Calculate the slope (a) and y-intercept (b) of the line
     const a = (endPoint.y - startPoint.y) / (endPoint.x - startPoint.x);
     const b = startPoint.y - a * startPoint.x;
 
-    const yAtLeftEdge = b;
-    const yAtRightEdge = a * canvas.width + b;
+    // Calculate the y-coordinates at the extended left and right edges
+    const yAtLeftEdge = a * -extendedWidth + b;
+    const yAtRightEdge = a * (canvas.width + extendedWidth) + b;
 
     ctx.beginPath();
-    ctx.moveTo(0, yAtLeftEdge);
-    ctx.lineTo(canvas.width, yAtRightEdge);
+    ctx.moveTo(-extendedWidth, yAtLeftEdge);
+    ctx.lineTo(canvas.width + extendedWidth, yAtRightEdge);
     ctx.strokeStyle = "red";
     ctx.lineWidth = 2;
     ctx.stroke();
