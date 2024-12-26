@@ -232,14 +232,41 @@ function restoreAreaCanvasState(index) {
   image.src = state.canvasImage;
 }
 
+async function loadInitialTemplate() {
+  try {
+    const response = await fetch("templates/stadium.json");
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const stadiumData = await response.json();
+    console.log(stadiumData.shapes);
+    debugger;
+    shapes = stadiumData.shapes.map((shapeData) => {
+      switch (shapeData.data.type) {
+        case "RectangleStage":
+          return RectangleStage.deserialize(shapeData.data);
+        case "EllipseStage":
+          return EllipseStage.deserialize(shapeData.data);
+        case "Area":
+          return PolygonArea.deserialize(shapeData.data);
+        default:
+          throw new Error("Unknown shape type: " + shapeData.data.type);
+      }
+    });
+    drawAll();
+    saveCanvasState();
+  } catch (error) {
+    console.error("Failed to load stadium.json:", error);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const state = sessionStorage.getItem("lastCanvasState");
+  console.log(state);
   if (state) {
     restoreCanvasStateFromSession(state);
   } else {
-    var map = new FirstTemplate(100, 300, 700, 800);
-    shapes = [...shapes, ...map.shapes];
-    drawAll();
+    loadInitialTemplate();
   }
   mainEditor();
   saveCanvasState();
